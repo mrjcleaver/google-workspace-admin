@@ -43,17 +43,27 @@ jobs:
           create_credentials_file: true
           export_environment_variables: false
 
-      - name: Restore GAM admin OAuth + cfg, write SA descriptor in signjwt mode
+      - name: Restore GAM admin OAuth + write cfg + SA descriptor
         env:
           GAM_OAUTH2_JSON: ${{ secrets.GAM_OAUTH2_JSON }}
-          GAM_CFG: ${{ secrets.GAM_CFG }}
           SA_EMAIL: ${{ secrets.GCP_SA_EMAIL }}
           SA_CLIENT_ID: ${{ secrets.GCP_SA_CLIENT_ID }}
+          WORKSPACE_DOMAIN: guelphrobotics.ca
         run: |
           mkdir -p "$HOME/.gam"
           printf '%s' "$GAM_OAUTH2_JSON" > "$HOME/.gam/oauth2.txt"
-          printf '%s' "$GAM_CFG"         > "$HOME/.gam/gam.cfg"
-          # GAM7 WIF needs two files:
+
+          # gam.cfg: written inline rather than from a secret — values are not
+          # actually secret and the secret-based approach was fragile.
+          cat > "$HOME/.gam/gam.cfg" <<EOF
+          [DEFAULT]
+          domain = $WORKSPACE_DOMAIN
+          customer_id = my_customer
+          oauth2_txt = oauth2.txt
+          oauth2service_json = oauth2service.json
+          EOF
+
+          # GAM7 WIF needs two credential files:
           #   - GOOGLE_APPLICATION_CREDENTIALS -> external_account file (from gcp-auth step)
           #   - oauth2service.json -> SA descriptor in signjwt mode (no private key)
           PROJECT_ID="${SA_EMAIL##*@}"; PROJECT_ID="${PROJECT_ID%%.iam.gserviceaccount.com}"
