@@ -39,62 +39,42 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA_EMAIL }}
+          service_account: ${{ vars.GCP_SA_EMAIL }}
           create_credentials_file: true
           export_environment_variables: false
 
-      - name: Restore GAM admin OAuth + write cfg + SA descriptor
+      - name: Restore GAM admin OAuth and write SA descriptor (signjwt mode)
         env:
           GAM_OAUTH2_JSON: ${{ secrets.GAM_OAUTH2_JSON }}
-          SA_EMAIL: ${{ secrets.GCP_SA_EMAIL }}
-          SA_CLIENT_ID: ${{ secrets.GCP_SA_CLIENT_ID }}
-          WORKSPACE_DOMAIN: guelphrobotics.ca
+          SA_EMAIL: ${{ vars.GCP_SA_EMAIL }}
+          SA_CLIENT_ID: ${{ vars.GCP_SA_CLIENT_ID }}
         run: |
           mkdir -p "$HOME/.gam"
           printf '%s' "$GAM_OAUTH2_JSON" > "$HOME/.gam/oauth2.txt"
 
-          # gam.cfg: written inline rather than from a secret — values are not
-          # actually secret and the secret-based approach was fragile.
-          cat > "$HOME/.gam/gam.cfg" <<EOF
-          [DEFAULT]
-          domain = $WORKSPACE_DOMAIN
-          customer_id = my_customer
-          oauth2_txt = oauth2.txt
-          oauth2service_json = oauth2service.json
-          EOF
-
-          # GAM7 WIF needs two credential files:
-          #   - GOOGLE_APPLICATION_CREDENTIALS -> external_account file (from gcp-auth step)
-          #   - oauth2service.json -> SA descriptor in signjwt mode (no private key)
+          # oauth2service.json mirrors the shape of a real SA key file, with
+          # private_key blanked and key_type=signjwt. GAM's loader expects the
+          # full shape; abbreviated descriptors get treated as malformed and
+          # GAM silently falls back to oauth2.txt. Per
+          # https://github.com/GAM-team/GAM/wiki/Using-GAM7-with-keyless-authentication-Workload-Identity-Federation
           PROJECT_ID="${SA_EMAIL##*@}"; PROJECT_ID="${PROJECT_ID%%.iam.gserviceaccount.com}"
+          SA_EMAIL_URLENC="${SA_EMAIL//@/%40}"
           cat > "$HOME/.gam/oauth2service.json" <<EOF
           {
+            "type": "service_account",
+            "project_id": "$PROJECT_ID",
+            "private_key_id": "",
+            "private_key": "",
             "client_email": "$SA_EMAIL",
             "client_id": "$SA_CLIENT_ID",
-            "project_id": "$PROJECT_ID",
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
-            "key_type": "signjwt",
-            "private_key": "",
-            "private_key_id": ""
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/$SA_EMAIL_URLENC",
+            "universe_domain": "googleapis.com",
+            "key_type": "signjwt"
           }
           EOF
-
-      - name: Sanity-check auth
-        run: gam info domain | head -5
-
-      - name: Debug — show GAM config and SA descriptor
-        run: |
-          echo "=== gam.cfg ==="
-          cat "$HOME/.gam/gam.cfg"
-          echo
-          echo "=== oauth2service.json ==="
-          cat "$HOME/.gam/oauth2service.json"
-          echo
-          echo "=== gam version ==="
-          gam version | head -10
-          echo
-          echo "=== gam user check serviceaccount ==="
-          gam user martin.cleaver@guelphrobotics.ca check serviceaccount 2>&1 | head -30 || true
 
       - name: Run audit
         env:
