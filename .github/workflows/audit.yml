@@ -72,6 +72,20 @@ jobs:
       - name: Sanity-check auth
         run: gam info domain | head -5
 
+      - name: Debug — show GAM config and SA descriptor
+        run: |
+          echo "=== gam.cfg ==="
+          cat "$HOME/.gam/gam.cfg"
+          echo
+          echo "=== oauth2service.json ==="
+          cat "$HOME/.gam/oauth2service.json"
+          echo
+          echo "=== gam version ==="
+          gam version | head -10
+          echo
+          echo "=== gam user check serviceaccount ==="
+          gam user martin.cleaver@guelphrobotics.ca check serviceaccount 2>&1 | head -30 || true
+
       - name: Run audit
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
