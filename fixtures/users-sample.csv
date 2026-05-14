@@ -1,0 +1,7 @@
+primaryEmail,suspended,isAdmin,orgUnitPath
+alice@volunteers.example.org,False,False,/Volunteers
+bob@volunteers.example.org,False,False,/Volunteers
+carol@volunteers.example.org,False,False,/Volunteers
+dave@volunteers.example.org,False,False,/Volunteers
+erin@volunteers.example.org,True,False,/Volunteers
+admin@volunteers.example.org,False,True,/Admins

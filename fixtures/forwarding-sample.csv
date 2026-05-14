@@ -1,0 +1,5 @@
+User,forwardingEmail,verificationStatus,disposition
+alice@volunteers.example.org,alice.personal@gmail.com,accepted,leaveInInbox
+bob@volunteers.example.org,bob@outlook.com,pending,archive
+carol@volunteers.example.org,carol@yahoo.com,accepted,markRead
+admin@volunteers.example.org,admin.personal@gmail.com,accepted,leaveInInbox

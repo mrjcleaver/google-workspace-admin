@@ -1,0 +1,78 @@
+name: Forwarding compliance audit
+
+on:
+  schedule:
+    # Weekly on Mondays 08:00 UTC (FR3 — weekly)
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Skip writes and webhook"
+        required: false
+        default: "false"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npm run build
+
+      - name: Install GAM
+        run: |
+          set -eux
+          bash <(curl -s -S -L https://gam-shortn.appspot.com/gam-install) -l
+          echo "$HOME/bin/gam7" >> "$GITHUB_PATH"
+
+      # WIF: mint a short-lived federated credential file. No SA private key
+      # ever touches the runner. The resulting file is of type=external_account;
+      # GAM7's bundled google-auth uses signJwt to do DWD without a private key.
+      - id: gcp-auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+          create_credentials_file: true
+          export_environment_variables: false
+
+      - name: Restore GAM admin OAuth + cfg, point GAM at WIF creds
+        env:
+          GAM_OAUTH2_JSON: ${{ secrets.GAM_OAUTH2_JSON }}
+          GAM_CFG: ${{ secrets.GAM_CFG }}
+          WIF_CREDENTIALS_FILE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          mkdir -p "$HOME/.gam"
+          printf '%s' "$GAM_OAUTH2_JSON" > "$HOME/.gam/oauth2.txt"
+          printf '%s' "$GAM_CFG"         > "$HOME/.gam/gam.cfg"
+          # Replace whatever oauth2service_json path is in gam.cfg with the WIF file
+          sed -i -E "s|^oauth2service_json\\s*=.*|oauth2service_json = ${WIF_CREDENTIALS_FILE}|" "$HOME/.gam/gam.cfg"
+
+      - name: Sanity-check auth
+        run: gam info domain | head -5
+
+      - name: Run audit
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+        run: |
+          ARGS=()
+          [ -n "$SHEET_ID" ] && ARGS+=(--sheet-id "$SHEET_ID")
+          [ -n "$SLACK_WEBHOOK" ] && ARGS+=(--webhook "$SLACK_WEBHOOK")
+          [ "${{ inputs.dry_run }}" = "true" ] && ARGS+=(--dry-run)
+          node dist/index.js "${ARGS[@]}"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forwarding-audit
+          path: out/
+          if-no-files-found: ignore
