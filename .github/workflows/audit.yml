@@ -76,6 +76,26 @@ jobs:
           }
           EOF
 
+      - name: Debug — probe SA path
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          set +e
+          echo "=== oauth2service.json (private fields are blank by design) ==="
+          cat "$HOME/.gam/oauth2service.json"
+          echo
+          echo "=== gam.cfg (auto-initialized by GAM) ==="
+          cat "$HOME/.gam/gam.cfg" 2>&1
+          echo
+          echo "=== GOOGLE_APPLICATION_CREDENTIALS file ==="
+          jq 'del(.credential_source)' "$GOOGLE_APPLICATION_CREDENTIALS" 2>&1 || cat "$GOOGLE_APPLICATION_CREDENTIALS"
+          echo
+          echo "=== gam info user (the wiki's recommended SA smoke test) ==="
+          gam info user martin.cleaver@guelphrobotics.ca 2>&1 | head -30
+          echo
+          echo "=== gam user check serviceaccount ==="
+          gam user martin.cleaver@guelphrobotics.ca check serviceaccount 2>&1 | head -30
+
       - name: Run audit
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
