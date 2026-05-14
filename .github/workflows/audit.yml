@@ -43,18 +43,31 @@ jobs:
           create_credentials_file: true
           export_environment_variables: false
 
-      - name: Restore GAM admin OAuth + cfg, drop WIF creds where GAM expects
+      - name: Restore GAM admin OAuth + cfg, write SA descriptor in signjwt mode
         env:
           GAM_OAUTH2_JSON: ${{ secrets.GAM_OAUTH2_JSON }}
           GAM_CFG: ${{ secrets.GAM_CFG }}
-          WIF_CREDENTIALS_FILE: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          SA_EMAIL: ${{ secrets.GCP_SA_EMAIL }}
+          SA_CLIENT_ID: ${{ secrets.GCP_SA_CLIENT_ID }}
         run: |
           mkdir -p "$HOME/.gam"
           printf '%s' "$GAM_OAUTH2_JSON" > "$HOME/.gam/oauth2.txt"
           printf '%s' "$GAM_CFG"         > "$HOME/.gam/gam.cfg"
-          # gam.cfg points at oauth2service.json (relative to ~/.gam/). Drop the
-          # WIF credential file there — no fragile substitution needed.
-          cp "$WIF_CREDENTIALS_FILE" "$HOME/.gam/oauth2service.json"
+          # GAM7 WIF needs two files:
+          #   - GOOGLE_APPLICATION_CREDENTIALS -> external_account file (from gcp-auth step)
+          #   - oauth2service.json -> SA descriptor in signjwt mode (no private key)
+          PROJECT_ID="${SA_EMAIL##*@}"; PROJECT_ID="${PROJECT_ID%%.iam.gserviceaccount.com}"
+          cat > "$HOME/.gam/oauth2service.json" <<EOF
+          {
+            "client_email": "$SA_EMAIL",
+            "client_id": "$SA_CLIENT_ID",
+            "project_id": "$PROJECT_ID",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "key_type": "signjwt",
+            "private_key": "",
+            "private_key_id": ""
+          }
+          EOF
 
       - name: Sanity-check auth
         run: gam info domain | head -5

@@ -124,6 +124,7 @@ Required repository secrets:
 | ------ | ------- |
 | `GCP_WIF_PROVIDER` | Full WIF provider resource name (`projects/<num>/locations/global/workloadIdentityPools/<pool>/providers/<provider>`) |
 | `GCP_SA_EMAIL` | Service account email (e.g. `gam-project-o94yk@gam-project-o94yk.iam.gserviceaccount.com`) |
+| `GCP_SA_CLIENT_ID` | SA's numeric OAuth client_id (~21 digits) — same value registered in Workspace Admin DWD. Required so GAM can build the SA descriptor in `signjwt` mode. |
 | `GAM_OAUTH2_JSON` | Contents of `~/.gam/oauth2.txt` (admin user OAuth, used for non-impersonated calls) |
 | `GAM_CFG` | Contents of `~/.gam/gam.cfg` |
 | `SHEET_ID` | Target spreadsheet ID (optional) |
