@@ -2,8 +2,8 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs, helpText } from "./cli.js";
-import { fetchForwardingCsv, fetchGmailReportCsv, fetchGroupMembersCsv, fetchUsersCsv, readFileOrEmpty } from "./gam.js";
-import { parseForwardingCsv, parseGmailReportCsv, parseGroupMembersCsv, parseUsersCsv, groupForwardingByUser } from "./parser.js";
+import { fetchForwardingCsv, fetchGroupMembersCsv, fetchUsersCsv, readFileOrEmpty } from "./gam.js";
+import { parseForwardingCsv, parseGroupMembersCsv, parseUsersCsv, groupForwardingByUser } from "./parser.js";
 import { classifyAll, classifyFromForwardingOnly } from "./compliance.js";
 import { writeCsvReport } from "./reporters/csv.js";
 import { writeMarkdownReport, toMarkdown } from "./reporters/markdown.js";
@@ -31,7 +31,6 @@ async function main(): Promise<void> {
   const fwd = parseForwardingCsv(forwardingCsv);
   const byUser = groupForwardingByUser(fwd);
   const groupsByUser = await fetchGroupsBestEffort();
-  const gmailByUser = await fetchGmailReportBestEffort();
   const opts = {
     allowedDomains: args.allowedDomains,
     exemptAdmins: args.exemptAdmins,
@@ -51,8 +50,8 @@ async function main(): Promise<void> {
     );
   }
   const result = users
-    ? classifyAll(users, byUser, opts, groupsByUser, gmailByUser)
-    : classifyFromForwardingOnly(byUser, opts, groupsByUser, gmailByUser);
+    ? classifyAll(users, byUser, opts, groupsByUser)
+    : classifyFromForwardingOnly(byUser, opts, groupsByUser);
 
   // 3. Always print markdown summary to stdout so logs are useful
   process.stdout.write(toMarkdown(result) + "\n");
@@ -91,17 +90,6 @@ async function fetchGroupsBestEffort(): Promise<Map<string, string[]>> {
   } catch (e) {
     process.stderr.write(
       `warn: skipping groups column (${e instanceof Error ? e.message : String(e)})\n`,
-    );
-    return new Map();
-  }
-}
-
-async function fetchGmailReportBestEffort(): Promise<Map<string, string>> {
-  try {
-    return parseGmailReportCsv(await fetchGmailReportCsv());
-  } catch (e) {
-    process.stderr.write(
-      `warn: skipping gmailLastInteractionTime column (${e instanceof Error ? e.message : String(e)})\n`,
     );
     return new Map();
   }

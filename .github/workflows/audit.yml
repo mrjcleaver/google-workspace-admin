@@ -102,7 +102,7 @@ jobs:
         run: |
           set -euxo pipefail
           gam user "$ADMIN_EMAIL" check serviceaccount \
-            scopes gmail.settings.basic,admin.directory.user.readonly,admin.directory.group.readonly,admin.directory.domain.readonly,admin.reports.usage.readonly
+            scopes gmail.settings.basic,admin.directory.user.readonly,admin.directory.group.readonly,admin.directory.domain.readonly
 
       - name: Run audit
         env:

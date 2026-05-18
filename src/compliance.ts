@@ -107,7 +107,6 @@ export function classifyAll(
   forwardingByUser: Map<string, ForwardingEntry[]>,
   opts: ComplianceOptions = {},
   groupsByUser: Map<string, string[]> = new Map(),
-  gmailByUser: Map<string, string> = new Map(),
 ): AuditResult {
   const now = new Date().toISOString();
   const nowMs = Date.parse(now);
@@ -115,8 +114,6 @@ export function classifyAll(
   const records: AuditRecord[] = users.map((u) => {
     const fwd = forwardingByUser.get(u.primaryEmail.toLowerCase()) ?? [];
     const daysSinceLogin = computeDaysSinceLogin(u.lastLoginTime, nowMs);
-    const gmailTs = u.gmailLastInteractionTime ?? gmailByUser.get(u.primaryEmail.toLowerCase());
-    const daysSinceGmail = computeDaysSinceLogin(gmailTs, nowMs);
     const { status, reason } = classify(u, fwd, daysSinceLogin, opts);
     return {
       primaryEmail: u.primaryEmail,
@@ -130,8 +127,6 @@ export function classifyAll(
       groups: u.groups ?? groupsByUser.get(u.primaryEmail.toLowerCase()) ?? [],
       lastLoginTime: u.lastLoginTime ?? "",
       daysSinceLogin,
-      gmailLastInteractionTime: gmailTs ?? "",
-      daysSinceGmail,
       unreachable: isUnreachable(u, fwd, daysSinceLogin, threshold),
       status,
       reason,
@@ -149,10 +144,9 @@ export function classifyFromForwardingOnly(
   forwardingByUser: Map<string, ForwardingEntry[]>,
   opts: ComplianceOptions = {},
   groupsByUser: Map<string, string[]> = new Map(),
-  gmailByUser: Map<string, string> = new Map(),
 ): AuditResult {
   const users: UserRecord[] = [...forwardingByUser.keys()].map((e) => ({ primaryEmail: e }));
-  return classifyAll(users, forwardingByUser, opts, groupsByUser, gmailByUser);
+  return classifyAll(users, forwardingByUser, opts, groupsByUser);
 }
 
 function summarize(records: AuditRecord[], generatedAt: string): AuditSummary {

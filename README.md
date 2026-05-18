@@ -195,7 +195,6 @@ the scopes the audit needs. Minimum set:
 - `https://www.googleapis.com/auth/admin.directory.user.readonly` — user list + recoveryEmail
 - `https://www.googleapis.com/auth/admin.directory.group.readonly` — per-user group membership
 - `https://www.googleapis.com/auth/admin.directory.domain.readonly` — `gam info domain` sanity check
-- `https://www.googleapis.com/auth/admin.reports.usage.readonly` — `gmail:last_interaction_time` via Admin Reports API (per ADR-0014; column is best-effort, audit still runs if absent)
 
 Paste comma-separated, no spaces. Verify with `gam user <admin> check serviceaccount`
 — the CI workflow runs this on every audit and fails fast on scope drift.

@@ -1,6 +1,6 @@
 # 0014 — Surface `gmail:last_interaction_time` from the Admin Reports API
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0015](0015-reject-admin-reports-usage-data.md)
 **Date:** 2026-05-18
 **Extends:** [ADR-0009](0009-reachability-classification.md)
 

@@ -22,8 +22,6 @@ export interface UserRecord {
   groups?: string[];
   /** ISO timestamp of last Google login, or undefined if never logged in. */
   lastLoginTime?: string;
-  /** ISO timestamp of last Gmail interaction (Admin Reports API), undefined when no data. */
-  gmailLastInteractionTime?: string;
 }
 
 export interface AuditRecord {
@@ -40,9 +38,6 @@ export interface AuditRecord {
   lastLoginTime: string;
   /** Integer day count, or -1 to indicate "never logged in". */
   daysSinceLogin: number;
-  gmailLastInteractionTime: string;
-  /** Integer day count for Gmail interactions, or -1 if no report data. */
-  daysSinceGmail: number;
   /** True when account is dormant AND no working forwarding configured. */
   unreachable: boolean;
   status: ComplianceStatus;

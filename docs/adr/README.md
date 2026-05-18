@@ -24,7 +24,8 @@ accepted — to change a decision, write a new ADR that supersedes the old one.
 | [0011](0011-active-users-compliant-without-forwarding.md) | Active users are compliant without forwarding | Accepted |
 | [0012](0012-codespace-authenticates-locally.md) | Codespaces CAN authenticate; local runs supported | Accepted |
 | [0013](0013-dormancy-threshold-28-days.md) | Default dormancy threshold: 28 days | Accepted (amends 0009, 0011) |
-| [0014](0014-gmail-last-interaction-time.md) | Surface `gmail:last_interaction_time` from the Admin Reports API | Accepted (extends 0009) |
+| [0014](0014-gmail-last-interaction-time.md) | Surface `gmail:last_interaction_time` from the Admin Reports API | Superseded by 0015 |
+| [0015](0015-reject-admin-reports-usage-data.md) | Reject Admin Reports API data as a reachability signal | Accepted |
 
 ## Deferred
 
