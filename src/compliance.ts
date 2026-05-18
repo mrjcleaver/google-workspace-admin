@@ -43,6 +43,38 @@ function classify(
   };
 }
 
+/**
+ * Returns -1 if the user has never logged in (sentinel for "never"); the
+ * sheet/markdown reporters render this as the string "never".
+ */
+function computeDaysSinceLogin(lastLoginTime: string | undefined, nowMs: number): number {
+  if (!lastLoginTime) return -1;
+  const t = Date.parse(lastLoginTime);
+  if (!Number.isFinite(t)) return -1;
+  return Math.floor((nowMs - t) / 86_400_000);
+}
+
+/**
+ * "Could mail sent to this user actually reach anyone?" Dormant on its own
+ * isn't unreachable — if forwarding is set up to a verified personal address,
+ * mail still gets through. So `unreachable` is the *intersection*: dormant
+ * AND no working forwarding. Suspended users are unreachable by definition.
+ */
+function isUnreachable(
+  user: UserRecord,
+  fwd: ForwardingEntry[],
+  daysSinceLogin: number,
+  threshold: number,
+): boolean {
+  if (user.isSuspended) return true;
+  const dormant = daysSinceLogin === -1 || daysSinceLogin >= threshold;
+  if (!dormant) return false;
+  const hasWorkingForwarding = fwd.some(
+    (e) => e.verified !== false && e.enabled !== false,
+  );
+  return !hasWorkingForwarding;
+}
+
 export function classifyAll(
   users: UserRecord[],
   forwardingByUser: Map<string, ForwardingEntry[]>,
@@ -50,9 +82,12 @@ export function classifyAll(
   groupsByUser: Map<string, string[]> = new Map(),
 ): AuditResult {
   const now = new Date().toISOString();
+  const nowMs = Date.parse(now);
+  const threshold = opts.unreachableAfterDays ?? 90;
   const records: AuditRecord[] = users.map((u) => {
     const fwd = forwardingByUser.get(u.primaryEmail.toLowerCase()) ?? [];
     const { status, reason } = classify(u, fwd, opts);
+    const daysSinceLogin = computeDaysSinceLogin(u.lastLoginTime, nowMs);
     return {
       primaryEmail: u.primaryEmail,
       isAdmin: u.isAdmin ?? false,
@@ -60,6 +95,9 @@ export function classifyAll(
       forwardingAddresses: fwd,
       recoveryEmail: u.recoveryEmail ?? "",
       groups: u.groups ?? groupsByUser.get(u.primaryEmail.toLowerCase()) ?? [],
+      lastLoginTime: u.lastLoginTime ?? "",
+      daysSinceLogin,
+      unreachable: isUnreachable(u, fwd, daysSinceLogin, threshold),
       status,
       reason,
       lastChecked: now,
@@ -85,12 +123,14 @@ function summarize(records: AuditRecord[], generatedAt: string): AuditSummary {
   let compliant = 0,
     nonCompliant = 0,
     invalid = 0,
-    exempt = 0;
+    exempt = 0,
+    unreachable = 0;
   for (const r of records) {
     if (r.status === "compliant") compliant++;
     else if (r.status === "non-compliant") nonCompliant++;
     else if (r.status === "invalid") invalid++;
     else if (r.status === "exempt") exempt++;
+    if (r.unreachable) unreachable++;
   }
   const evaluable = compliant + nonCompliant + invalid;
   return {
@@ -99,6 +139,7 @@ function summarize(records: AuditRecord[], generatedAt: string): AuditSummary {
     nonCompliant,
     invalid,
     exempt,
+    unreachable,
     compliancePct: evaluable === 0 ? 0 : Math.round((compliant / evaluable) * 1000) / 10,
     generatedAt,
   };

@@ -35,6 +35,7 @@ async function main(): Promise<void> {
     allowedDomains: args.allowedDomains,
     exemptAdmins: args.exemptAdmins,
     exemptSuspended: args.exemptSuspended,
+    unreachableAfterDays: args.unreachableAfterDays,
   };
   const result = usersCsv
     ? classifyAll(parseUsersCsv(usersCsv), byUser, opts, groupsByUser)

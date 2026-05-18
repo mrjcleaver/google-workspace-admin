@@ -11,6 +11,7 @@ export interface CliArgs {
   allowedDomains: string[];
   exemptAdmins: boolean;
   exemptSuspended: boolean;
+  unreachableAfterDays: number;
   dryRun: boolean;
   help: boolean;
 }
@@ -43,6 +44,8 @@ Compliance policy:
   --allowed-domain <domain>   Restrict forwarding targets (repeatable)
   --no-exempt-admins          Don't exempt admin users (PRD: admins are exempt by default)
   --no-exempt-suspended       Don't exempt suspended users
+  --unreachable-after-days N  Days since last login that marks a dormant user
+                              unreachable when no working forwarding (default: 90)
 
 Other:
   --dry-run                   Print summary, write no files, post no webhook
@@ -61,6 +64,7 @@ export function parseArgs(argv: string[]): CliArgs {
     allowedDomains: [],
     exemptAdmins: true,
     exemptSuspended: true,
+    unreachableAfterDays: 90,
     dryRun: false,
     help: false,
   };
@@ -118,6 +122,13 @@ export function parseArgs(argv: string[]): CliArgs {
       case "--no-exempt-suspended":
         args.exemptSuspended = false;
         break;
+      case "--unreachable-after-days": {
+        const v = need(a, next());
+        const n = Number(v);
+        if (!Number.isInteger(n) || n < 0) throw new Error(`${a} expects a non-negative integer, got ${v}`);
+        args.unreachableAfterDays = n;
+        break;
+      }
       case "--dry-run":
         args.dryRun = true;
         break;

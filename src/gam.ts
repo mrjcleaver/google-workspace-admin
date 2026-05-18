@@ -48,7 +48,12 @@ export async function fetchUsersCsv(opts: GamRunOptions = {}): Promise<string> {
   // recoveryEmail is the user-configured personal address tied to the
   // Workspace account (separate from forwarding).
   return runGam(
-    ["print", "users", "fields", "primaryEmail,suspended,isAdmin,orgUnitPath,recoveryEmail"],
+    [
+      "print",
+      "users",
+      "fields",
+      "primaryEmail,suspended,isAdmin,orgUnitPath,recoveryEmail,lastLoginTime",
+    ],
     opts,
   );
 }

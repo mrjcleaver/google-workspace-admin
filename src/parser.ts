@@ -78,12 +78,18 @@ export function parseUsersCsv(csv: string): UserRecord[] {
   for (const row of rows) {
     const email = pick(row, ["primaryEmail", "User", "email"]);
     if (!email) continue;
+    // GAM emits `1970-01-01T00:00:00.000Z` as the sentinel for "never logged
+    // in" — treat that exactly the same as a missing column.
+    const rawLogin = pick(row, ["lastLoginTime", "lastLogin"]);
+    const lastLoginTime =
+      rawLogin && !rawLogin.startsWith("1970-01-01") ? rawLogin : undefined;
     users.push({
       primaryEmail: email,
       isAdmin: parseBool(pick(row, ["isAdmin", "admin"])),
       isSuspended: parseBool(pick(row, ["suspended", "isSuspended"])),
       orgUnitPath: pick(row, ["orgUnitPath", "ou"]),
       recoveryEmail: pick(row, ["recoveryEmail", "recovery"]),
+      lastLoginTime,
     });
   }
   return users;

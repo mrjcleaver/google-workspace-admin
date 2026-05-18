@@ -18,6 +18,8 @@ export interface UserRecord {
   orgUnitPath?: string;
   recoveryEmail?: string;
   groups?: string[];
+  /** ISO timestamp of last Google login, or undefined if never logged in. */
+  lastLoginTime?: string;
 }
 
 export interface AuditRecord {
@@ -27,6 +29,11 @@ export interface AuditRecord {
   forwardingAddresses: ForwardingEntry[];
   recoveryEmail: string;
   groups: string[];
+  lastLoginTime: string;
+  /** Integer day count, or -1 to indicate "never logged in". */
+  daysSinceLogin: number;
+  /** True when account is dormant AND no working forwarding configured. */
+  unreachable: boolean;
   status: ComplianceStatus;
   reason: string;
   lastChecked: string;
@@ -38,6 +45,7 @@ export interface AuditSummary {
   nonCompliant: number;
   invalid: number;
   exempt: number;
+  unreachable: number;
   compliancePct: number;
   generatedAt: string;
 }
@@ -54,4 +62,6 @@ export interface ComplianceOptions {
   exemptAdmins?: boolean;
   /** Treat suspended users as exempt. */
   exemptSuspended?: boolean;
+  /** Days since last login above which the account is considered dormant. */
+  unreachableAfterDays?: number;
 }
