@@ -63,10 +63,9 @@ unless directory data proves insufficient (deferred ADR, see README).
 
 ## Consequences
 
-- **Positive:** Surfaces the "improper setup" case (e.g.
-  `<volunteer>@example.org` — never logged in despite having a
-  recovery email set) which the four-bucket scheme treated as plain
-  non-compliant.
+- **Positive:** Surfaces the "improper setup" case (account exists,
+  never logged in, recovery email set but no forwarding) which the
+  four-bucket scheme treated as plain non-compliant.
 - **Positive:** Free w.r.t. scopes — `lastLoginTime` is already covered
   by `admin.directory.user.readonly`.
 - **Negative:** "Working forwarding" check is heuristic (we trust

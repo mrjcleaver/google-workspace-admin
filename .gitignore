@@ -6,3 +6,19 @@ dist-test/
 .env.*
 out/
 *.tsbuildinfo
+
+# Local agent / harness state — never commit. These can hold session data,
+# tool credentials, MCP server tokens, or local debug state.
+.claude/
+.claude-flow/
+.mcp.json
+CLAUDE.md
+
+# Belt-and-braces patterns for accidentally-named credential files
+*.pem
+*.key
+*-credentials.json
+*-creds.json
+oauth2*.json
+service-account*.json
+gam.cfg

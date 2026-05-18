@@ -10,11 +10,11 @@ across multiple OUs:
 
 ```
 /                                    (23 — real volunteer accounts)
-/Service Accounts                    (6 — <integration users>, ...)
-/RCCR Shared Accounts                (2 — <shared functional mailboxes>)
+/Service Accounts                    (6 — third-party integration users)
+/RCCR Shared Accounts                (2 — shared functional mailboxes)
 /FRC 2609 - Beaverworx               (7 — team admin accounts)
-/FRC 2609 - Beaverworx/FRC 2609 - Students  (6 — <student-pool accounts>)
-/FRC 11227 - Goose Goose Duck        (1 — <team media account>)
+/FRC 2609 - Beaverworx/FRC 2609 - Students  (6 — student-pool accounts)
+/FRC 11227 - Goose Goose Duck        (1 — team media account)
 ```
 
 The forwarding compliance audit is concerned with **human volunteers**
