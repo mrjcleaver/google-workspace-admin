@@ -10,6 +10,8 @@ export function toCsv(result: AuditResult): string {
     forwardingAddresses: r.forwardingAddresses.map((f) => f.forwardingAddress).join("; "),
     verified: r.forwardingAddresses.map((f) => f.verified ?? "").join("; "),
     disposition: r.forwardingAddresses.map((f) => f.disposition ?? "").join("; "),
+    recoveryEmail: r.recoveryEmail,
+    groups: r.groups.join("; "),
     isAdmin: r.isAdmin,
     isSuspended: r.isSuspended,
     lastChecked: r.lastChecked,

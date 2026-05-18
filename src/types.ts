@@ -16,6 +16,8 @@ export interface UserRecord {
   isAdmin?: boolean;
   isSuspended?: boolean;
   orgUnitPath?: string;
+  recoveryEmail?: string;
+  groups?: string[];
 }
 
 export interface AuditRecord {
@@ -23,6 +25,8 @@ export interface AuditRecord {
   isAdmin: boolean;
   isSuspended: boolean;
   forwardingAddresses: ForwardingEntry[];
+  recoveryEmail: string;
+  groups: string[];
   status: ComplianceStatus;
   reason: string;
   lastChecked: string;

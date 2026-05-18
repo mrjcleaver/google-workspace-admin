@@ -26,20 +26,26 @@ export function toMarkdown(result: AuditResult): string {
   if (nonCompliant.length > 0) {
     lines.push(`## Non-compliant users (${nonCompliant.length})`);
     lines.push("");
-    lines.push(`| User | Reason |`);
-    lines.push(`| ---- | ------ |`);
-    for (const r of nonCompliant) lines.push(`| ${r.primaryEmail} | ${r.reason} |`);
+    lines.push(`| User | Recovery | Groups | Reason |`);
+    lines.push(`| ---- | -------- | ------ | ------ |`);
+    for (const r of nonCompliant) {
+      lines.push(
+        `| ${r.primaryEmail} | ${r.recoveryEmail || "—"} | ${r.groups.join(", ") || "—"} | ${r.reason} |`,
+      );
+    }
     lines.push("");
   }
 
   if (invalid.length > 0) {
     lines.push(`## Invalid forwarding (${invalid.length})`);
     lines.push("");
-    lines.push(`| User | Forwarding | Reason |`);
-    lines.push(`| ---- | ---------- | ------ |`);
+    lines.push(`| User | Forwarding | Recovery | Groups | Reason |`);
+    lines.push(`| ---- | ---------- | -------- | ------ | ------ |`);
     for (const r of invalid) {
       const fwd = r.forwardingAddresses.map((f) => f.forwardingAddress).join(", ");
-      lines.push(`| ${r.primaryEmail} | ${fwd} | ${r.reason} |`);
+      lines.push(
+        `| ${r.primaryEmail} | ${fwd} | ${r.recoveryEmail || "—"} | ${r.groups.join(", ") || "—"} | ${r.reason} |`,
+      );
     }
     lines.push("");
   }

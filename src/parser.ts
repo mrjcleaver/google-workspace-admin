@@ -83,9 +83,30 @@ export function parseUsersCsv(csv: string): UserRecord[] {
       isAdmin: parseBool(pick(row, ["isAdmin", "admin"])),
       isSuspended: parseBool(pick(row, ["suspended", "isSuspended"])),
       orgUnitPath: pick(row, ["orgUnitPath", "ou"]),
+      recoveryEmail: pick(row, ["recoveryEmail", "recovery"]),
     });
   }
   return users;
+}
+
+/**
+ * Parse `gam print group-members` CSV into a map of member-email -> list of
+ * group emails they belong to. Case-folded on the member side so it joins
+ * cleanly with primaryEmail lookups.
+ */
+export function parseGroupMembersCsv(csv: string): Map<string, string[]> {
+  const rows = parse(csv, { columns: true, skip_empty_lines: true, trim: true }) as Record<string, string>[];
+  const byMember = new Map<string, string[]>();
+  for (const row of rows) {
+    const group = pick(row, ["group", "groupEmail", "Group"]);
+    const member = pick(row, ["email", "memberEmail", "primaryEmail"]);
+    if (!group || !member) continue;
+    const key = member.toLowerCase();
+    const list = byMember.get(key) ?? [];
+    if (!list.includes(group)) list.push(group);
+    byMember.set(key, list);
+  }
+  return byMember;
 }
 
 export function groupForwardingByUser(

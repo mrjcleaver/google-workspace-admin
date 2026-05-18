@@ -189,8 +189,20 @@ echo "GCP_SA_EMAIL     = $SA_EMAIL"
 
 In `admin.google.com` → Security → Access and data control → API controls →
 Domain-wide delegation, confirm the SA's numeric client_id is registered with
-the scopes GAM needs (`gam user <admin> check serviceaccount` lists them).
+the scopes the audit needs. Minimum set:
+
+- `https://www.googleapis.com/auth/gmail.settings.basic` — read per-user forwarding
+- `https://www.googleapis.com/auth/admin.directory.user.readonly` — user list + recoveryEmail
+- `https://www.googleapis.com/auth/admin.directory.group.readonly` — per-user group membership
+- `https://www.googleapis.com/auth/admin.directory.domain.readonly` — `gam info domain` sanity check
+
+Paste comma-separated, no spaces. Verify with `gam user <admin> check serviceaccount`
+— the CI workflow runs this on every audit and fails fast on scope drift.
 This is independent of WIF and only needs to be done once.
+
+Also set the repo variable `GAM_ADMIN_EMAIL` (Settings → Variables → Actions)
+to the admin account used for impersonation during the scope check, e.g.
+your primary super-admin address.
 
 ### Docker
 

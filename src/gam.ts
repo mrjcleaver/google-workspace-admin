@@ -44,8 +44,19 @@ export async function fetchForwardingCsv(opts: GamRunOptions = {}): Promise<stri
 }
 
 export async function fetchUsersCsv(opts: GamRunOptions = {}): Promise<string> {
-  // include suspended + isAdmin so the classifier can apply exemptions
-  return runGam(["print", "users", "fields", "primaryEmail,suspended,isAdmin,orgUnitPath"], opts);
+  // include suspended + isAdmin so the classifier can apply exemptions;
+  // recoveryEmail is the user-configured personal address tied to the
+  // Workspace account (separate from forwarding).
+  return runGam(
+    ["print", "users", "fields", "primaryEmail,suspended,isAdmin,orgUnitPath,recoveryEmail"],
+    opts,
+  );
+}
+
+export async function fetchGroupMembersCsv(opts: GamRunOptions = {}): Promise<string> {
+  // CSV with one row per (group, member). We aggregate to member->groups[]
+  // in the parser. Type filter excludes nested groups/service accounts.
+  return runGam(["print", "group-members", "types", "user", "fields", "group,email"], opts);
 }
 
 export async function readFileOrEmpty(path: string | undefined): Promise<string | undefined> {

@@ -2,8 +2,8 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs, helpText } from "./cli.js";
-import { fetchForwardingCsv, fetchUsersCsv, readFileOrEmpty } from "./gam.js";
-import { parseForwardingCsv, parseUsersCsv, groupForwardingByUser } from "./parser.js";
+import { fetchForwardingCsv, fetchGroupMembersCsv, fetchUsersCsv, readFileOrEmpty } from "./gam.js";
+import { parseForwardingCsv, parseGroupMembersCsv, parseUsersCsv, groupForwardingByUser } from "./parser.js";
 import { classifyAll, classifyFromForwardingOnly } from "./compliance.js";
 import { writeCsvReport } from "./reporters/csv.js";
 import { writeMarkdownReport, toMarkdown } from "./reporters/markdown.js";
@@ -26,20 +26,19 @@ async function main(): Promise<void> {
       ? undefined // forwarding-only mode when input file is provided without users
       : await fetchUsersCsv();
 
-  // 2. Parse + classify
+  // 2. Parse + classify. Group membership is best-effort: if the SA lacks
+  // directory.group.readonly we skip it rather than fail the audit.
   const fwd = parseForwardingCsv(forwardingCsv);
   const byUser = groupForwardingByUser(fwd);
+  const groupsByUser = await fetchGroupsBestEffort();
+  const opts = {
+    allowedDomains: args.allowedDomains,
+    exemptAdmins: args.exemptAdmins,
+    exemptSuspended: args.exemptSuspended,
+  };
   const result = usersCsv
-    ? classifyAll(parseUsersCsv(usersCsv), byUser, {
-        allowedDomains: args.allowedDomains,
-        exemptAdmins: args.exemptAdmins,
-        exemptSuspended: args.exemptSuspended,
-      })
-    : classifyFromForwardingOnly(byUser, {
-        allowedDomains: args.allowedDomains,
-        exemptAdmins: args.exemptAdmins,
-        exemptSuspended: args.exemptSuspended,
-      });
+    ? classifyAll(parseUsersCsv(usersCsv), byUser, opts, groupsByUser)
+    : classifyFromForwardingOnly(byUser, opts, groupsByUser);
 
   // 3. Always print markdown summary to stdout so logs are useful
   process.stdout.write(toMarkdown(result) + "\n");
@@ -69,6 +68,17 @@ async function main(): Promise<void> {
   if (args.webhook) {
     await postWebhook(args.webhook, result, args.webhookFlavor);
     process.stderr.write(`posted webhook\n`);
+  }
+}
+
+async function fetchGroupsBestEffort(): Promise<Map<string, string[]>> {
+  try {
+    return parseGroupMembersCsv(await fetchGroupMembersCsv());
+  } catch (e) {
+    process.stderr.write(
+      `warn: skipping groups column (${e instanceof Error ? e.message : String(e)})\n`,
+    );
+    return new Map();
   }
 }
 

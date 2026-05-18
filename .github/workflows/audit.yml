@@ -27,10 +27,25 @@ jobs:
       - run: npm run build
 
       - name: Install GAM
+        env:
+          # Auth the install path so we don't share the runner's 60/hr
+          # unauthenticated rate limit with every other Actions job on the
+          # same IP block. The shortn install script makes an unauthenticated
+          # api.github.com call to discover the latest release, which fails
+          # silently under rate pressure and leaves gam uninstalled — we use
+          # `gh release download` instead.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -eux
-          bash <(curl -s -S -L https://gam-shortn.appspot.com/gam-install) -l
+          set -euxo pipefail
+          GLIBC=$(ldd --version | head -1 | awk '{print $NF}')
+          echo "Runner glibc: $GLIBC"
+          cd /tmp
+          gh release download --repo GAM-team/GAM \
+            --pattern "*-linux-x86_64-glibc${GLIBC}.tar.xz"
+          mkdir -p "$HOME/bin"
+          tar xf *-linux-x86_64-glibc${GLIBC}.tar.xz -C "$HOME/bin"
           echo "$HOME/bin/gam7" >> "$GITHUB_PATH"
+          "$HOME/bin/gam7/gam" version | head -3
 
       # WIF: mint a short-lived federated credential file. No SA private key
       # ever touches the runner. The resulting file is of type=external_account;
@@ -76,22 +91,18 @@ jobs:
           }
           EOF
 
-      - name: Debug — test admin OAuth in isolation
+      # Fail fast if DwD scopes were silently dropped/edited in the Workspace
+      # Admin Console. `check serviceaccount` impersonates ADMIN_EMAIL once per
+      # listed scope and reports PASS/FAIL; missing scopes here will manifest
+      # as "No Client Access allowed" during the audit otherwise.
+      - name: Verify SA Domain-Wide Delegation scopes
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+          ADMIN_EMAIL: ${{ vars.GAM_ADMIN_EMAIL }}
         run: |
-          set +e
-          echo "=== oauth2.txt size ==="
-          wc -c "$HOME/.gam/oauth2.txt"
-          echo
-          echo "=== oauth2.txt first line (no secrets — just shape) ==="
-          head -c 200 "$HOME/.gam/oauth2.txt" | tr -d '\n' | head -c 80; echo
-          echo
-          echo "=== gam info domain (admin OAuth only, no SA needed) ==="
-          gam info domain 2>&1 | head -10
-          echo
-          echo "=== gam version ==="
-          gam version 2>&1 | head -3
+          set -euxo pipefail
+          gam user "$ADMIN_EMAIL" check serviceaccount \
+            scopes gmail.settings.basic,admin.directory.user.readonly,admin.directory.group.readonly,admin.directory.domain.readonly
 
       - name: Run audit
         env:

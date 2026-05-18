@@ -47,6 +47,7 @@ export function classifyAll(
   users: UserRecord[],
   forwardingByUser: Map<string, ForwardingEntry[]>,
   opts: ComplianceOptions = {},
+  groupsByUser: Map<string, string[]> = new Map(),
 ): AuditResult {
   const now = new Date().toISOString();
   const records: AuditRecord[] = users.map((u) => {
@@ -57,6 +58,8 @@ export function classifyAll(
       isAdmin: u.isAdmin ?? false,
       isSuspended: u.isSuspended ?? false,
       forwardingAddresses: fwd,
+      recoveryEmail: u.recoveryEmail ?? "",
+      groups: u.groups ?? groupsByUser.get(u.primaryEmail.toLowerCase()) ?? [],
       status,
       reason,
       lastChecked: now,
@@ -72,9 +75,10 @@ export function classifyAll(
 export function classifyFromForwardingOnly(
   forwardingByUser: Map<string, ForwardingEntry[]>,
   opts: ComplianceOptions = {},
+  groupsByUser: Map<string, string[]> = new Map(),
 ): AuditResult {
   const users: UserRecord[] = [...forwardingByUser.keys()].map((e) => ({ primaryEmail: e }));
-  return classifyAll(users, forwardingByUser, opts);
+  return classifyAll(users, forwardingByUser, opts, groupsByUser);
 }
 
 function summarize(records: AuditRecord[], generatedAt: string): AuditSummary {
