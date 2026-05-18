@@ -32,7 +32,8 @@ function classify(
 
   if (fwd.length === 0) {
     if (active) return { status: "compliant", reason: `active user (logged in ${daysSinceLogin}d ago)` };
-    return { status: "non-compliant", reason: "no forwarding address configured" };
+    const dormancyNote = daysSinceLogin === -1 ? "never logged in" : `${daysSinceLogin}d since login`;
+    return { status: "non-compliant", reason: `no forwarding address configured (${dormancyNote})` };
   }
 
   const allowed = (opts.allowedDomains ?? []).map((d) => d.toLowerCase().replace(/^@/, ""));
