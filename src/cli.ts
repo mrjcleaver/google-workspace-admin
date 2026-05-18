@@ -13,6 +13,7 @@ export interface CliArgs {
   exemptSuspended: boolean;
   unreachableAfterDays: number;
   fullOrgPath: boolean;
+  includeSubOus: boolean;
   dryRun: boolean;
   help: boolean;
 }
@@ -49,6 +50,8 @@ Compliance policy:
                               unreachable when no working forwarding (default: 90)
   --full-org-path             Render the user's full orgUnitPath in the
                               \`organization\` column. Default: top-level OU only.
+  --include-sub-ous           Audit users in sub-OUs in addition to the root
+                              OU. Default: only users at orgUnitPath \`/\`.
 
 Other:
   --dry-run                   Print summary, write no files, post no webhook
@@ -69,6 +72,7 @@ export function parseArgs(argv: string[]): CliArgs {
     exemptSuspended: true,
     unreachableAfterDays: 90,
     fullOrgPath: false,
+    includeSubOus: false,
     dryRun: false,
     help: false,
   };
@@ -128,6 +132,9 @@ export function parseArgs(argv: string[]): CliArgs {
         break;
       case "--full-org-path":
         args.fullOrgPath = true;
+        break;
+      case "--include-sub-ous":
+        args.includeSubOus = true;
         break;
       case "--unreachable-after-days": {
         const v = need(a, next());

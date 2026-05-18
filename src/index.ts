@@ -38,8 +38,19 @@ async function main(): Promise<void> {
     unreachableAfterDays: args.unreachableAfterDays,
     fullOrgPath: args.fullOrgPath,
   };
-  const result = usersCsv
-    ? classifyAll(parseUsersCsv(usersCsv), byUser, opts, groupsByUser)
+  // By default the audit only covers users at the root OU `/`. Sub-OU users
+  // (service accounts, sub-team accounts) are excluded unless --include-sub-ous
+  // is set. Forwarding-only mode has no OU data, so the filter is a no-op there.
+  let users = usersCsv ? parseUsersCsv(usersCsv) : undefined;
+  if (users && !args.includeSubOus) {
+    const before = users.length;
+    users = users.filter((u) => !u.orgUnitPath || u.orgUnitPath === "/");
+    process.stderr.write(
+      `filtered to root OU only: ${users.length} of ${before} users (use --include-sub-ous to keep sub-OU users)\n`,
+    );
+  }
+  const result = users
+    ? classifyAll(users, byUser, opts, groupsByUser)
     : classifyFromForwardingOnly(byUser, opts, groupsByUser);
 
   // 3. Always print markdown summary to stdout so logs are useful
