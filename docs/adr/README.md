@@ -23,6 +23,7 @@ accepted — to change a decision, write a new ADR that supersedes the old one.
 | [0010](0010-default-audit-scope-root-ou-only.md) | Default audit scope: root OU only | Accepted |
 | [0011](0011-active-users-compliant-without-forwarding.md) | Active users are compliant without forwarding | Accepted |
 | [0012](0012-codespace-authenticates-locally.md) | Codespaces CAN authenticate; local runs supported | Accepted |
+| [0013](0013-dormancy-threshold-28-days.md) | Default dormancy threshold: 28 days | Accepted (amends 0009, 0011) |
 
 ## Deferred
 

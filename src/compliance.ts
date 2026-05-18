@@ -27,7 +27,7 @@ function classify(
   // configuration. Note: this intentionally does NOT downgrade invalid/broken
   // forwarding to "compliant" for active users — broken-but-active is still
   // worth surfacing so the user can clean up stale rules.
-  const threshold = opts.unreachableAfterDays ?? 90;
+  const threshold = opts.unreachableAfterDays ?? 28;
   const active = daysSinceLogin >= 0 && daysSinceLogin <= threshold;
 
   if (fwd.length === 0) {
@@ -109,7 +109,7 @@ export function classifyAll(
 ): AuditResult {
   const now = new Date().toISOString();
   const nowMs = Date.parse(now);
-  const threshold = opts.unreachableAfterDays ?? 90;
+  const threshold = opts.unreachableAfterDays ?? 28;
   const records: AuditRecord[] = users.map((u) => {
     const fwd = forwardingByUser.get(u.primaryEmail.toLowerCase()) ?? [];
     const daysSinceLogin = computeDaysSinceLogin(u.lastLoginTime, nowMs);

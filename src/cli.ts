@@ -47,7 +47,7 @@ Compliance policy:
   --no-exempt-admins          Don't exempt admin users (PRD: admins are exempt by default)
   --no-exempt-suspended       Don't exempt suspended users
   --unreachable-after-days N  Days since last login that marks a dormant user
-                              unreachable when no working forwarding (default: 90)
+                              unreachable when no working forwarding (default: 28)
   --full-org-path             Render the user's full orgUnitPath in the
                               \`organization\` column. Default: top-level OU only.
   --include-sub-ous           Audit users in sub-OUs in addition to the root
@@ -70,7 +70,7 @@ export function parseArgs(argv: string[]): CliArgs {
     allowedDomains: [],
     exemptAdmins: true,
     exemptSuspended: true,
-    unreachableAfterDays: 90,
+    unreachableAfterDays: 28,
     fullOrgPath: false,
     includeSubOus: false,
     dryRun: false,
