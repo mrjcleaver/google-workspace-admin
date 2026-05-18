@@ -122,10 +122,13 @@ export async function writeSheetsReport(result: AuditResult, opts: SheetsOptions
     });
   }
 
-  // Replace contents
+  // Replace contents. The Sheets API's values.clear with just the tab name
+  // is sometimes a no-op (race with cached row metadata); pass an explicit
+  // generous range so a shorter follow-up write doesn't leave orphan rows
+  // from a prior longer write.
   await sheets.spreadsheets.values.clear({
     spreadsheetId: opts.spreadsheetId,
-    range: sheetName,
+    range: `${sheetName}!A1:ZZ100000`,
   });
   await sheets.spreadsheets.values.update({
     spreadsheetId: opts.spreadsheetId,
