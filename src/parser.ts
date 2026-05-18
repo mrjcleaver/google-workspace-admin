@@ -101,6 +101,25 @@ export function parseUsersCsv(csv: string): UserRecord[] {
 }
 
 /**
+ * Parse `gam report users parameters gmail:last_interaction_time` CSV into
+ * a map of email -> ISO timestamp. The report's `date` column is the
+ * aggregation day (not the interaction time); we keep the third column
+ * `gmail:last_interaction_time` since that's the actual signal.
+ */
+export function parseGmailReportCsv(csv: string): Map<string, string> {
+  const rows = parse(csv, { columns: true, skip_empty_lines: true, trim: true }) as Record<string, string>[];
+  const byUser = new Map<string, string>();
+  for (const row of rows) {
+    const email = pick(row, ["email", "primaryEmail", "User"]);
+    const ts = pick(row, ["gmail:last_interaction_time", "gmail.last_interaction_time", "last_interaction_time"]);
+    if (!email || !ts) continue;
+    if (ts === "Never" || ts.startsWith("1970-01-01")) continue;
+    byUser.set(email.toLowerCase(), ts);
+  }
+  return byUser;
+}
+
+/**
  * Parse `gam print group-members` CSV into a map of member-email -> list of
  * group emails they belong to. Case-folded on the member side so it joins
  * cleanly with primaryEmail lookups.

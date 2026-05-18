@@ -17,6 +17,8 @@ export function toCsv(result: AuditResult): string {
     verified: r.forwardingAddresses.map((f) => f.verified ?? "").join("; "),
     disposition: r.forwardingAddresses.map((f) => f.disposition ?? "").join("; "),
     lastLoginTime: r.lastLoginTime,
+    gmailLastInteractionTime: r.gmailLastInteractionTime,
+    daysSinceGmail: r.daysSinceGmail === -1 ? "" : r.daysSinceGmail,
     unreachable: r.unreachable,
     isAdmin: r.isAdmin,
     isSuspended: r.isSuspended,

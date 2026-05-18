@@ -24,6 +24,7 @@ accepted — to change a decision, write a new ADR that supersedes the old one.
 | [0011](0011-active-users-compliant-without-forwarding.md) | Active users are compliant without forwarding | Accepted |
 | [0012](0012-codespace-authenticates-locally.md) | Codespaces CAN authenticate; local runs supported | Accepted |
 | [0013](0013-dormancy-threshold-28-days.md) | Default dormancy threshold: 28 days | Accepted (amends 0009, 0011) |
+| [0014](0014-gmail-last-interaction-time.md) | Surface `gmail:last_interaction_time` from the Admin Reports API | Accepted (extends 0009) |
 
 ## Deferred
 
@@ -33,6 +34,3 @@ These will be written when the work begins:
 - Onboarding-window detection (PRD FR4 / Phase 2)
 - Auto-remediation scope (PRD FR5 / Phase 3)
 - Comms channel strategy — Slack/Discord vs. email primacy (PRD Open Q4)
-- Gmail-specific last-used-time signal via Admin Reports API (alternative to
-  directory `lastLoginTime` from 0009) — add only if directory data proves
-  insufficient for the dormancy decision

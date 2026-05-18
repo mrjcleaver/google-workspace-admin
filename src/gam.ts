@@ -64,6 +64,16 @@ export async function fetchGroupMembersCsv(opts: GamRunOptions = {}): Promise<st
   return runGam(["print", "group-members", "types", "user", "fields", "group,email"], opts);
 }
 
+export async function fetchGmailReportCsv(opts: GamRunOptions = {}): Promise<string> {
+  // Admin Reports API: when did each user actually interact with Gmail
+  // (read/click/reply — not just background sync). Daily granularity, ~3
+  // day lag. Per ADR-0014.
+  return runGam(
+    ["report", "users", "parameters", "gmail:last_interaction_time"],
+    opts,
+  );
+}
+
 export async function readFileOrEmpty(path: string | undefined): Promise<string | undefined> {
   if (!path) return undefined;
   return await readFile(path, "utf8");
