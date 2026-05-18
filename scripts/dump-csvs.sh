@@ -35,7 +35,7 @@ run_dump() {
 }
 
 run_dump "forwarding"   "$OUT_DIR/forwarding.csv"     gam all users print forward
-run_dump "users"        "$OUT_DIR/users.csv"          gam print users fields primaryEmail,suspended,isAdmin,orgUnitPath,recoveryEmail
+run_dump "users"        "$OUT_DIR/users.csv"          gam print users fields primaryEmail,givenName,familyName,suspended,isAdmin,orgUnitPath,recoveryEmail,lastLoginTime
 run_dump "group-members" "$OUT_DIR/group-members.csv" gam print group-members types user fields group,email
 
 echo

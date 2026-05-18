@@ -28,11 +28,11 @@ export function toMarkdown(result: AuditResult): string {
   if (nonCompliant.length > 0) {
     lines.push(`## Non-compliant users (${nonCompliant.length})`);
     lines.push("");
-    lines.push(`| User | Recovery | Groups | Reason |`);
-    lines.push(`| ---- | -------- | ------ | ------ |`);
+    lines.push(`| User | Org | Recovery | Groups | Reason |`);
+    lines.push(`| ---- | --- | -------- | ------ | ------ |`);
     for (const r of nonCompliant) {
       lines.push(
-        `| ${r.primaryEmail} | ${r.recoveryEmail || "—"} | ${r.groups.join(", ") || "—"} | ${r.reason} |`,
+        `| ${r.primaryEmail} | ${r.organization || "—"} | ${r.recoveryEmail || "—"} | ${r.groups.join(", ") || "—"} | ${r.reason} |`,
       );
     }
     lines.push("");
@@ -41,12 +41,12 @@ export function toMarkdown(result: AuditResult): string {
   if (invalid.length > 0) {
     lines.push(`## Invalid forwarding (${invalid.length})`);
     lines.push("");
-    lines.push(`| User | Forwarding | Recovery | Groups | Reason |`);
-    lines.push(`| ---- | ---------- | -------- | ------ | ------ |`);
+    lines.push(`| User | Org | Forwarding | Recovery | Groups | Reason |`);
+    lines.push(`| ---- | --- | ---------- | -------- | ------ | ------ |`);
     for (const r of invalid) {
       const fwd = r.forwardingAddresses.map((f) => f.forwardingAddress).join(", ");
       lines.push(
-        `| ${r.primaryEmail} | ${fwd} | ${r.recoveryEmail || "—"} | ${r.groups.join(", ") || "—"} | ${r.reason} |`,
+        `| ${r.primaryEmail} | ${r.organization || "—"} | ${fwd} | ${r.recoveryEmail || "—"} | ${r.groups.join(", ") || "—"} | ${r.reason} |`,
       );
     }
     lines.push("");
@@ -57,11 +57,11 @@ export function toMarkdown(result: AuditResult): string {
     lines.push("");
     lines.push(`Dormant accounts with no working forwarding — mail sent here does not reach anyone.`);
     lines.push("");
-    lines.push(`| User | Last login | Recovery |`);
-    lines.push(`| ---- | ---------- | -------- |`);
+    lines.push(`| User | Org | Last login | Recovery |`);
+    lines.push(`| ---- | --- | ---------- | -------- |`);
     for (const r of unreachable) {
       const since = r.daysSinceLogin === -1 ? "never" : `${r.daysSinceLogin}d ago`;
-      lines.push(`| ${r.primaryEmail} | ${since} | ${r.recoveryEmail || "—"} |`);
+      lines.push(`| ${r.primaryEmail} | ${r.organization || "—"} | ${since} | ${r.recoveryEmail || "—"} |`);
     }
     lines.push("");
   }

@@ -78,13 +78,18 @@ export function parseUsersCsv(csv: string): UserRecord[] {
   for (const row of rows) {
     const email = pick(row, ["primaryEmail", "User", "email"]);
     if (!email) continue;
-    // GAM emits `1970-01-01T00:00:00.000Z` as the sentinel for "never logged
-    // in" — treat that exactly the same as a missing column.
+    // GAM has two "never logged in" sentinels — the literal string "Never"
+    // and the epoch timestamp `1970-01-01T00:00:00.000Z`. Both collapse to
+    // undefined here so the compliance layer's daysSinceLogin=-1 path fires.
     const rawLogin = pick(row, ["lastLoginTime", "lastLogin"]);
     const lastLoginTime =
-      rawLogin && !rawLogin.startsWith("1970-01-01") ? rawLogin : undefined;
+      rawLogin && rawLogin !== "Never" && !rawLogin.startsWith("1970-01-01")
+        ? rawLogin
+        : undefined;
     users.push({
       primaryEmail: email,
+      firstName: pick(row, ["name.givenName", "givenName", "firstName"]),
+      lastName: pick(row, ["name.familyName", "familyName", "lastName"]),
       isAdmin: parseBool(pick(row, ["isAdmin", "admin"])),
       isSuspended: parseBool(pick(row, ["suspended", "isSuspended"])),
       orgUnitPath: pick(row, ["orgUnitPath", "ou"]),

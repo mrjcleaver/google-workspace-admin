@@ -5,6 +5,9 @@ import type { AuditResult } from "../types.js";
 export function toCsv(result: AuditResult): string {
   const rows = result.records.map((r) => ({
     primaryEmail: r.primaryEmail,
+    firstName: r.firstName,
+    lastName: r.lastName,
+    organization: r.organization,
     status: r.status,
     reason: r.reason,
     forwardingAddresses: r.forwardingAddresses.map((f) => f.forwardingAddress).join("; "),

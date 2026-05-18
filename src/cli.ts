@@ -12,6 +12,7 @@ export interface CliArgs {
   exemptAdmins: boolean;
   exemptSuspended: boolean;
   unreachableAfterDays: number;
+  fullOrgPath: boolean;
   dryRun: boolean;
   help: boolean;
 }
@@ -46,6 +47,8 @@ Compliance policy:
   --no-exempt-suspended       Don't exempt suspended users
   --unreachable-after-days N  Days since last login that marks a dormant user
                               unreachable when no working forwarding (default: 90)
+  --full-org-path             Render the user's full orgUnitPath in the
+                              \`organization\` column. Default: top-level OU only.
 
 Other:
   --dry-run                   Print summary, write no files, post no webhook
@@ -65,6 +68,7 @@ export function parseArgs(argv: string[]): CliArgs {
     exemptAdmins: true,
     exemptSuspended: true,
     unreachableAfterDays: 90,
+    fullOrgPath: false,
     dryRun: false,
     help: false,
   };
@@ -121,6 +125,9 @@ export function parseArgs(argv: string[]): CliArgs {
         break;
       case "--no-exempt-suspended":
         args.exemptSuspended = false;
+        break;
+      case "--full-org-path":
+        args.fullOrgPath = true;
         break;
       case "--unreachable-after-days": {
         const v = need(a, next());

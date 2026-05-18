@@ -13,6 +13,8 @@ export interface ForwardingEntry {
 
 export interface UserRecord {
   primaryEmail: string;
+  firstName?: string;
+  lastName?: string;
   isAdmin?: boolean;
   isSuspended?: boolean;
   orgUnitPath?: string;
@@ -24,6 +26,10 @@ export interface UserRecord {
 
 export interface AuditRecord {
   primaryEmail: string;
+  firstName: string;
+  lastName: string;
+  /** Top-level OU by default; full path when --full-org-path is set. */
+  organization: string;
   isAdmin: boolean;
   isSuspended: boolean;
   forwardingAddresses: ForwardingEntry[];
@@ -64,4 +70,6 @@ export interface ComplianceOptions {
   exemptSuspended?: boolean;
   /** Days since last login above which the account is considered dormant. */
   unreachableAfterDays?: number;
+  /** When true, render the full orgUnitPath as `organization`; default keeps only the top-level OU. */
+  fullOrgPath?: boolean;
 }

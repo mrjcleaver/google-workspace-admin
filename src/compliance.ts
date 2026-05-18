@@ -44,6 +44,20 @@ function classify(
 }
 
 /**
+ * "/" → "" (root OU, no useful org info);
+ * "/Foo" → "Foo";
+ * "/Foo/Bar" → "Foo" (unless fullPath is set, in which case the leading
+ * slash is dropped but the rest is preserved).
+ */
+function deriveOrganization(orgUnitPath: string | undefined, fullPath: boolean): string {
+  if (!orgUnitPath || orgUnitPath === "/") return "";
+  const trimmed = orgUnitPath.replace(/^\//, "");
+  if (fullPath) return trimmed;
+  const slash = trimmed.indexOf("/");
+  return slash === -1 ? trimmed : trimmed.slice(0, slash);
+}
+
+/**
  * Returns -1 if the user has never logged in (sentinel for "never"); the
  * sheet/markdown reporters render this as the string "never".
  */
@@ -90,6 +104,9 @@ export function classifyAll(
     const daysSinceLogin = computeDaysSinceLogin(u.lastLoginTime, nowMs);
     return {
       primaryEmail: u.primaryEmail,
+      firstName: u.firstName ?? "",
+      lastName: u.lastName ?? "",
+      organization: deriveOrganization(u.orgUnitPath, opts.fullOrgPath ?? false),
       isAdmin: u.isAdmin ?? false,
       isSuspended: u.isSuspended ?? false,
       forwardingAddresses: fwd,

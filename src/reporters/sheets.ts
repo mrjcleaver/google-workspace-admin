@@ -69,6 +69,9 @@ async function getClient(opts: SheetsOptions) {
 function toRows(result: AuditResult): (string | number | boolean)[][] {
   const header = [
     "primaryEmail",
+    "firstName",
+    "lastName",
+    "organization",
     "status",
     "reason",
     "forwardingAddresses",
@@ -85,6 +88,9 @@ function toRows(result: AuditResult): (string | number | boolean)[][] {
   ];
   const data = result.records.map((r) => [
     r.primaryEmail,
+    r.firstName,
+    r.lastName,
+    r.organization,
     r.status,
     r.reason,
     r.forwardingAddresses.map((f) => f.forwardingAddress).join("; "),

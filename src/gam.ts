@@ -52,7 +52,7 @@ export async function fetchUsersCsv(opts: GamRunOptions = {}): Promise<string> {
       "print",
       "users",
       "fields",
-      "primaryEmail,suspended,isAdmin,orgUnitPath,recoveryEmail,lastLoginTime",
+      "primaryEmail,givenName,familyName,suspended,isAdmin,orgUnitPath,recoveryEmail,lastLoginTime",
     ],
     opts,
   );
