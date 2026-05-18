@@ -56,6 +56,21 @@ test("flags forwarding to disallowed domain as invalid", () => {
   assert.match(carol!.reason, /domain not allowed/);
 });
 
+test("active user with no forwarding is compliant (ADR-0011)", () => {
+  const fwd = new Map();
+  const recent = new Date(Date.now() - 5 * 86_400_000).toISOString();
+  const users = [
+    { primaryEmail: "active@volunteers.example.org", lastLoginTime: recent },
+    { primaryEmail: "dormant@volunteers.example.org", lastLoginTime: undefined },
+  ];
+  const result = classifyAll(users, fwd, { exemptAdmins: false, exemptSuspended: false });
+  const active = result.records.find((r) => r.primaryEmail === "active@volunteers.example.org");
+  const dormant = result.records.find((r) => r.primaryEmail === "dormant@volunteers.example.org");
+  assert.equal(active?.status, "compliant");
+  assert.match(active!.reason, /active user/);
+  assert.equal(dormant?.status, "non-compliant");
+});
+
 test("summary stats match record classification", () => {
   const { fwd, users } = setup();
   const result = classifyAll(users, fwd, { exemptAdmins: true, exemptSuspended: true });

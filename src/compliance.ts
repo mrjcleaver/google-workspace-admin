@@ -16,12 +16,24 @@ function domainOf(email: string): string {
 function classify(
   user: UserRecord,
   fwd: ForwardingEntry[],
+  daysSinceLogin: number,
   opts: ComplianceOptions,
 ): { status: ComplianceStatus; reason: string } {
   if (opts.exemptAdmins && user.isAdmin) return { status: "exempt", reason: "admin user" };
   if (opts.exemptSuspended && user.isSuspended) return { status: "exempt", reason: "suspended user" };
 
-  if (fwd.length === 0) return { status: "non-compliant", reason: "no forwarding address configured" };
+  // Active users are reachable by definition — forwarding is irrelevant to
+  // them. ADR-0011 supersedes ADR-0006: compliance follows reachability, not
+  // configuration. Note: this intentionally does NOT downgrade invalid/broken
+  // forwarding to "compliant" for active users — broken-but-active is still
+  // worth surfacing so the user can clean up stale rules.
+  const threshold = opts.unreachableAfterDays ?? 90;
+  const active = daysSinceLogin >= 0 && daysSinceLogin <= threshold;
+
+  if (fwd.length === 0) {
+    if (active) return { status: "compliant", reason: `active user (logged in ${daysSinceLogin}d ago)` };
+    return { status: "non-compliant", reason: "no forwarding address configured" };
+  }
 
   const allowed = (opts.allowedDomains ?? []).map((d) => d.toLowerCase().replace(/^@/, ""));
   const problems: string[] = [];
@@ -100,8 +112,8 @@ export function classifyAll(
   const threshold = opts.unreachableAfterDays ?? 90;
   const records: AuditRecord[] = users.map((u) => {
     const fwd = forwardingByUser.get(u.primaryEmail.toLowerCase()) ?? [];
-    const { status, reason } = classify(u, fwd, opts);
     const daysSinceLogin = computeDaysSinceLogin(u.lastLoginTime, nowMs);
+    const { status, reason } = classify(u, fwd, daysSinceLogin, opts);
     return {
       primaryEmail: u.primaryEmail,
       firstName: u.firstName ?? "",
