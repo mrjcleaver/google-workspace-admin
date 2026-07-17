@@ -109,7 +109,7 @@ jobs:
            GW_TOKEN: ${{ secrets.GWORKSPACE_WEBHOOK_TOKEN }} 
         run: |                                                                                                 
           gam print users fields primaryEmail,name,fullName,suspended,organizations > users.csv
-          curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \ 
+          curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
           -H "Content-Type: text/csv" --data-binary @users.csv
       
       - name: Run audit
