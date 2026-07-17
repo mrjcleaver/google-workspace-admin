@@ -101,10 +101,8 @@ jobs:
           ADMIN_EMAIL: ${{ vars.GAM_ADMIN_EMAIL }}
         run: |
           set -euxo pipefail
-          gam user "$ADMIN_EMAIL" check serviceaccount \
-          https://www.googleapis.com/auth/admin.directory.user.readonly,\
-          https://www.googleapis.com/auth/admin.directory.group.readonly,\
-          https://www.googleapis.com/auth/admin.directory.domain.readonly
+          gam user "$ADMIN_EMAIL" check serviceaccount scopes \
+            "https://www.googleapis.com/auth/admin.directory.user.readonly,https://www.googleapis.com/auth/admin.directory.group.readonly,https://www.googleapis.com/auth/admin.directory.domain.readonly"
 
       - name: Run audit
         env:
