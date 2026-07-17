@@ -103,6 +103,15 @@ jobs:
           set -euxo pipefail
           gam user "$ADMIN_EMAIL" check serviceaccount scopes \
              "https://www.googleapis.com/auth/admin.directory.user.readonly,https://www.googleapis.com/auth/admin.directory.group.readonly,https://www.googleapis.com/auth/admin.directory.domain.readonly,https://www.googleapis.com/auth/gmail.settings.basic"
+             
+      - name: Push Workspace roster to CRM                                                                     
+        env: 
+           GW_TOKEN: ${{ secrets.GWORKSPACE_WEBHOOK_TOKEN }} 
+        run: |                                                                                                 
+          gam print users fields primaryEmail,name.fullName,suspended,organizations > users.csv
+          curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \ 
+          -H "Content-Type: text/csv" --data-binary @users.csv
+      
       - name: Run audit
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
