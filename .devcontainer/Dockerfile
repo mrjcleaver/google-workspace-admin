@@ -3,7 +3,7 @@
 # just the image the Codespace runs in, not a container built from within it.
 FROM node:20-alpine
 
-RUN apk add --no-cache bash git curl python3 libc6-compat ca-certificates
+RUN apk add --no-cache bash git git-lfs curl python3 libc6-compat ca-certificates
 
 # gcloud CLI — for the one-time GCP setup in README.md and scripts/enable-apis.sh.
 # Alpine has no `google-cloud-cli` apk package, so use the official installer.
