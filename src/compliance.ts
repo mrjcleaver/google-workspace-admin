@@ -131,6 +131,7 @@ export function classifyAll(
       status,
       reason,
       lastChecked: now,
+      workspaceId: u.workspaceId ?? "",
     };
   });
   return { records, summary: summarize(records, now) };

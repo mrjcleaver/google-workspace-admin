@@ -21,6 +21,7 @@ export function toCsv(result: AuditResult): string {
     isAdmin: r.isAdmin,
     isSuspended: r.isSuspended,
     lastChecked: r.lastChecked,
+    workspaceId: r.workspaceId,
   }));
   return stringify(rows, { header: true });
 }

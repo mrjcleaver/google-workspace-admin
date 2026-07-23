@@ -85,6 +85,7 @@ function toRows(result: AuditResult): (string | number | boolean)[][] {
     "isAdmin",
     "isSuspended",
     "lastChecked",
+    "workspaceId",
   ];
   const data = result.records.map((r) => [
     r.firstName,
@@ -104,6 +105,7 @@ function toRows(result: AuditResult): (string | number | boolean)[][] {
     r.isAdmin,
     r.isSuspended,
     r.lastChecked,
+    r.workspaceId,
   ]);
   return [header, ...data];
 }

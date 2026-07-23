@@ -95,6 +95,7 @@ export function parseUsersCsv(csv: string): UserRecord[] {
       orgUnitPath: pick(row, ["orgUnitPath", "ou"]),
       recoveryEmail: pick(row, ["recoveryEmail", "recovery"]),
       lastLoginTime,
+      workspaceId: pick(row, ["id", "workspaceId"]),
     });
   }
   return users;

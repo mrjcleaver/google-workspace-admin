@@ -103,14 +103,12 @@ jobs:
           set -euxo pipefail
           gam user "$ADMIN_EMAIL" check serviceaccount scopes \
              "https://www.googleapis.com/auth/admin.directory.user.readonly,https://www.googleapis.com/auth/admin.directory.group.readonly,https://www.googleapis.com/auth/admin.directory.domain.readonly,https://www.googleapis.com/auth/gmail.settings.basic"
-      - name: Push Workspace roster to CRM                                                                     
-        env: 
-           GW_TOKEN: ${{ secrets.GWORKSPACE_WEBHOOK_TOKEN }} 
-        run: |                                                                                                 
-          gam print users fields primaryEmail,name,fullName,suspended,organizations > users.csv
-          curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
-          -H "Content-Type: text/csv" --data-binary @users.csv
-      
+      # Roster CSV kept only for its CRM-specific columns (name/fullName/
+      # suspended/organizations) that the audit report doesn't carry — merged
+      # into the audit's own CSV below rather than pushed on its own.
+      - name: Fetch roster for CRM merge
+        run: gam print users fields primaryEmail,name,fullName,suspended,organizations > users.csv
+
       - name: Run audit
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
@@ -130,3 +128,16 @@ jobs:
           name: forwarding-audit
           path: out/
           if-no-files-found: ignore
+
+      # Pushes the audit's own report (all compliance columns, incl.
+      # workspaceId) merged with the roster's CRM-specific columns, instead of
+      # the bare roster CSV. Skipped on dry runs since out/forwarding-audit.csv
+      # isn't written in that mode.
+      - name: Push audit report to CRM
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          GW_TOKEN: ${{ secrets.GWORKSPACE_WEBHOOK_TOKEN }}
+        run: |
+          node scripts/merge-crm-csv.mjs users.csv out/forwarding-audit.csv crm-payload.csv
+          curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
+          -H "Content-Type: text/csv" --data-binary @crm-payload.csv

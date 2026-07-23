@@ -22,6 +22,8 @@ export interface UserRecord {
   groups?: string[];
   /** ISO timestamp of last Google login, or undefined if never logged in. */
   lastLoginTime?: string;
+  /** Stable per-user Google Workspace Directory ID (survives email changes). */
+  workspaceId?: string;
 }
 
 export interface AuditRecord {
@@ -43,6 +45,8 @@ export interface AuditRecord {
   status: ComplianceStatus;
   reason: string;
   lastChecked: string;
+  /** Stable per-user Google Workspace Directory ID (survives email changes). */
+  workspaceId: string;
 }
 
 export interface AuditSummary {

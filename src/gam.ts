@@ -48,13 +48,14 @@ export function runGam(args: string[], opts: GamRunOptions = {}): Promise<string
 export async function fetchUsersCsv(opts: GamRunOptions = {}): Promise<string> {
   // include suspended + isAdmin so the classifier can apply exemptions;
   // recoveryEmail is the user-configured personal address tied to the
-  // Workspace account (separate from forwarding).
+  // Workspace account (separate from forwarding). `id` is the stable
+  // per-user Directory ID (survives email changes, unlike primaryEmail).
   return runGam(
     [
       "print",
       "users",
       "fields",
-      "primaryEmail,givenName,familyName,suspended,isAdmin,orgUnitPath,recoveryEmail,lastLoginTime",
+      "primaryEmail,givenName,familyName,suspended,isAdmin,orgUnitPath,recoveryEmail,lastLoginTime,id",
     ],
     opts,
   );
