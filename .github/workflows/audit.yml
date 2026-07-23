@@ -111,21 +111,37 @@ jobs:
           curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
           -H "Content-Type: text/csv" --data-binary @users.csv
       
+      # TEMPORARY: diagnosing the "Gmail API Service/App not enabled" error
+      # that persists even with the API enabled, DWD scopes verified PASS,
+      # and a Gmail-inclusive license. This dumps the raw Google API error
+      # body (reason code) instead of GAM's friendly message. Revert once
+      # the root cause is found.
+      - name: Enable GAM debug logging (temporary diagnostic)
+        run: gam config debug_level 4 save
+
       - name: Run audit
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.gcp-auth.outputs.credentials_file_path }}
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
         run: |
+          set -o pipefail
           ARGS=()
           [ -n "$SHEET_ID" ] && ARGS+=(--sheet-id "$SHEET_ID")
           [ -n "$SLACK_WEBHOOK" ] && ARGS+=(--webhook "$SLACK_WEBHOOK")
           [ "${{ inputs.dry_run }}" = "true" ] && ARGS+=(--dry-run)
-          node dist/index.js "${ARGS[@]}"
+          node dist/index.js "${ARGS[@]}" 2>&1 | tee gam-debug.log
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: forwarding-audit
           path: out/
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gam-debug-log
+          path: gam-debug.log
           if-no-files-found: ignore
