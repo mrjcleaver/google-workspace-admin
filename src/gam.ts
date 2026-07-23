@@ -32,7 +32,15 @@ export function runGam(args: string[], opts: GamRunOptions = {}): Promise<string
     child.on("close", (code) => {
       if (timer) clearTimeout(timer);
       if (code === 0) resolve(stdout);
-      else reject(new Error(`gam exited ${code}: ${stderr.trim() || "no stderr"}`));
+      else {
+        const stdoutTail = stdout.trim();
+        reject(
+          new Error(
+            `gam exited ${code}: ${stderr.trim() || "no stderr"}` +
+              (stdoutTail ? `\nstdout: ${stdoutTail}` : ""),
+          ),
+        );
+      }
     });
   });
 }
