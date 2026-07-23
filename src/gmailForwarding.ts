@@ -1,11 +1,8 @@
+import { readFile } from "node:fs/promises";
 import { google } from "googleapis";
 import type { ForwardingEntry } from "./types.js";
 
-// Matches src/reporters/sheets.ts's mintImpersonatedSheetsToken: cloud-platform
-// is the scope the WIF credentials file in CI is actually set up to grant
-// (google-github-actions/auth's access_token_scopes default), and it's broad
-// enough to cover iamcredentials.signJwt.
-const CALLER_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+const CALLER_SCOPE = "https://www.googleapis.com/auth/iam";
 const GMAIL_SETTINGS_SCOPE = "https://www.googleapis.com/auth/gmail.settings.basic";
 
 export interface GmailForwardingOptions {
@@ -23,14 +20,77 @@ function describeError(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
 }
 
+interface ExternalAccountCredentials {
+  type: string;
+  audience: string;
+  token_url: string;
+  service_account_impersonation_url?: string;
+}
+
+async function getGithubOidcToken(audience: string): Promise<string> {
+  const url = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+  const token = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
+  if (!url || !token) {
+    throw new Error(
+      "ACTIONS_ID_TOKEN_REQUEST_URL/TOKEN not set — the job needs `permissions: id-token: write`",
+    );
+  }
+  const resp = await fetch(`${url}&audience=${encodeURIComponent(audience)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resp.ok) throw new Error(`fetching GitHub OIDC token failed (${resp.status}): ${await resp.text()}`);
+  const body = (await resp.json()) as { value: string };
+  return body.value;
+}
+
+/**
+ * Mints a token that IS the impersonated service account, by hand — mirroring
+ * the exact sequence GAM's own Python client performs for the same WIF
+ * credentials file (GitHub OIDC -> STS token exchange -> IAM Credentials
+ * generateAccessToken). google-auth-library's ExternalAccountClient returns a
+ * bare federated token from getAccessToken() without necessarily completing
+ * the impersonation hop, which isn't itself authorized to call signJwt on the
+ * target SA — hence doing the exchange explicitly here.
+ */
 async function selfAccessToken(): Promise<string> {
-  const auth = new google.auth.GoogleAuth({ scopes: [CALLER_SCOPE] });
+  const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (!credPath) throw new Error("GOOGLE_APPLICATION_CREDENTIALS is required to fetch forwarding data live");
+  const creds = JSON.parse(await readFile(credPath, "utf8")) as ExternalAccountCredentials;
+  if (creds.type !== "external_account" || !creds.service_account_impersonation_url) {
+    throw new Error(
+      `expected an external_account (WIF) credential with service_account_impersonation_url, got type=${creds.type}`,
+    );
+  }
+
   try {
-    const client = await auth.getClient();
-    const resp = await client.getAccessToken();
-    const token = typeof resp === "string" ? resp : resp.token;
-    if (!token) throw new Error("no token in response");
-    return token;
+    const audience = creds.audience.replace(/^\/\//, "https://");
+    const oidcToken = await getGithubOidcToken(audience);
+
+    const stsResp = await fetch(creds.token_url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
+        audience: creds.audience,
+        scope: CALLER_SCOPE,
+        requested_token_type: "urn:ietf:params:oauth:token-type:access_token",
+        subject_token: oidcToken,
+        subject_token_type: "urn:ietf:params:oauth:token-type:jwt",
+      }),
+    });
+    if (!stsResp.ok) throw new Error(`STS token exchange failed (${stsResp.status}): ${await stsResp.text()}`);
+    const { access_token: federatedToken } = (await stsResp.json()) as { access_token: string };
+
+    const impResp = await fetch(creds.service_account_impersonation_url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${federatedToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ scope: [CALLER_SCOPE], lifetime: "3600s" }),
+    });
+    if (!impResp.ok) {
+      throw new Error(`generateAccessToken failed (${impResp.status}): ${await impResp.text()}`);
+    }
+    const { accessToken } = (await impResp.json()) as { accessToken: string };
+    return accessToken;
   } catch (e) {
     throw new Error(`could not obtain a caller access token to sign DWD JWTs: ${describeError(e)}`);
   }
