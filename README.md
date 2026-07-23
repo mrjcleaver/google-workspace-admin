@@ -150,6 +150,7 @@ PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectN
 # 1. Enable APIs
 gcloud services enable \
   iamcredentials.googleapis.com sts.googleapis.com iam.googleapis.com \
+  gmail.googleapis.com admin.googleapis.com \
   --project "$PROJECT_ID"
 
 # 2. Create the Workload Identity Pool + GitHub OIDC provider
@@ -184,6 +185,11 @@ gcloud iam service-accounts add-iam-policy-binding "$SA_EMAIL" \
 echo "GCP_WIF_PROVIDER = projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
 echo "GCP_SA_EMAIL     = $SA_EMAIL"
 ```
+
+`gmail.googleapis.com` and `admin.googleapis.com` must be enabled or GAM fails
+per-user with `gam exited 73: ... Gmail API Service/App not enabled` — this is
+independent of the DWD scope grant below (that controls *which* scopes the SA
+may request; this controls whether the API is reachable at all).
 
 #### One-time Workspace Admin setup
 
