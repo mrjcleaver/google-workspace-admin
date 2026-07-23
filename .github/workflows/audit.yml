@@ -122,13 +122,6 @@ jobs:
           [ "${{ inputs.dry_run }}" = "true" ] && ARGS+=(--dry-run)
           node dist/index.js "${ARGS[@]}"
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: forwarding-audit
-          path: out/
-          if-no-files-found: ignore
-
       # Pushes the audit's own report (all compliance columns, incl.
       # workspaceId) merged with the roster's CRM-specific columns, instead of
       # the bare roster CSV. Skipped on dry runs since out/forwarding-audit.csv
@@ -141,3 +134,13 @@ jobs:
           node scripts/merge-crm-csv.mjs users.csv out/forwarding-audit.csv crm-payload.csv
           curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
           -H "Content-Type: text/csv" --data-binary @crm-payload.csv
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: forwarding-audit
+          path: |
+            out/
+            users.csv
+            crm-payload.csv
+          if-no-files-found: ignore
