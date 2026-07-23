@@ -2,7 +2,8 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs, helpText } from "./cli.js";
-import { fetchForwardingCsv, fetchGroupMembersCsv, fetchUsersCsv, readFileOrEmpty } from "./gam.js";
+import { fetchGroupMembersCsv, fetchUsersCsv, readFileOrEmpty } from "./gam.js";
+import { fetchForwardingByUser } from "./gmailForwarding.js";
 import { parseForwardingCsv, parseGroupMembersCsv, parseUsersCsv, groupForwardingByUser } from "./parser.js";
 import { classifyAll, classifyFromForwardingOnly } from "./compliance.js";
 import { writeCsvReport } from "./reporters/csv.js";
@@ -17,27 +18,14 @@ async function main(): Promise<void> {
     return;
   }
 
-  // 1. Get input CSVs (file or GAM)
-  const forwardingCsv =
-    (await readFileOrEmpty(args.forwardingInput)) ?? (await fetchForwardingCsv());
+  // 1. Get users (file or GAM). Needed both for classification and, when
+  // forwarding isn't pre-supplied, to know which mailboxes to query.
   const usersCsv = args.usersInput
     ? await readFileOrEmpty(args.usersInput)
     : args.forwardingInput
       ? undefined // forwarding-only mode when input file is provided without users
       : await fetchUsersCsv();
 
-  // 2. Parse + classify. Group membership is best-effort: if the SA lacks
-  // directory.group.readonly we skip it rather than fail the audit.
-  const fwd = parseForwardingCsv(forwardingCsv);
-  const byUser = groupForwardingByUser(fwd);
-  const groupsByUser = await fetchGroupsBestEffort();
-  const opts = {
-    allowedDomains: args.allowedDomains,
-    exemptAdmins: args.exemptAdmins,
-    exemptSuspended: args.exemptSuspended,
-    unreachableAfterDays: args.unreachableAfterDays,
-    fullOrgPath: args.fullOrgPath,
-  };
   // By default the audit only covers users at the root OU `/`. Sub-OU users
   // (service accounts, sub-team accounts) are excluded unless --include-sub-ous
   // is set. Forwarding-only mode has no OU data, so the filter is a no-op there.
@@ -49,6 +37,29 @@ async function main(): Promise<void> {
       `filtered to root OU only: ${users.length} of ${before} users (use --include-sub-ous to keep sub-OU users)\n`,
     );
   }
+
+  // 2. Get forwarding data: from file, or a direct Gmail API call scoped to
+  // gmail.settings.basic only. GAM's `all users print forward` requests a
+  // much broader domain-wide-delegation scope bundle (mail.google.com +
+  // gmail.modify + gmail.settings.sharing) than reading forwarding rules
+  // actually needs — see src/gmailForwarding.ts.
+  const byUser = args.forwardingInput
+    ? groupForwardingByUser(parseForwardingCsv((await readFileOrEmpty(args.forwardingInput)) ?? ""))
+    : await fetchForwardingByUser(
+        (users ?? []).map((u) => u.primaryEmail),
+        { serviceAccountEmail: requireServiceAccountEmail() },
+      );
+
+  // Group membership is best-effort: if the SA lacks directory.group.readonly
+  // we skip it rather than fail the audit.
+  const groupsByUser = await fetchGroupsBestEffort();
+  const opts = {
+    allowedDomains: args.allowedDomains,
+    exemptAdmins: args.exemptAdmins,
+    exemptSuspended: args.exemptSuspended,
+    unreachableAfterDays: args.unreachableAfterDays,
+    fullOrgPath: args.fullOrgPath,
+  };
   const result = users
     ? classifyAll(users, byUser, opts, groupsByUser)
     : classifyFromForwardingOnly(byUser, opts, groupsByUser);
@@ -82,6 +93,16 @@ async function main(): Promise<void> {
     await postWebhook(args.webhook, result, args.webhookFlavor);
     process.stderr.write(`posted webhook\n`);
   }
+}
+
+function requireServiceAccountEmail(): string {
+  const email = process.env.GCP_SA_EMAIL;
+  if (!email) {
+    throw new Error(
+      "GCP_SA_EMAIL is required to fetch forwarding data live (or pass --forwarding-input)",
+    );
+  }
+  return email;
 }
 
 async function fetchGroupsBestEffort(): Promise<Map<string, string[]>> {

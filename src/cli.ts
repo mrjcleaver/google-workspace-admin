@@ -59,7 +59,11 @@ Other:
 
 Environment:
   GAM_PATH                    Path to gam binary (default: \`gam\` on PATH)
+  GCP_SA_EMAIL                Service account to impersonate users as when
+                              fetching forwarding data live (domain-wide
+                              delegation, scoped to gmail.settings.basic)
   GOOGLE_APPLICATION_CREDENTIALS  Path to service account JSON for Sheets
+                              and for signing the DWD token above
   GOOGLE_SERVICE_ACCOUNT_JSON     Inline service account JSON for Sheets
 `;
 

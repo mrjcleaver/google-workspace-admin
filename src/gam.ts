@@ -45,12 +45,6 @@ export function runGam(args: string[], opts: GamRunOptions = {}): Promise<string
   });
 }
 
-export async function fetchForwardingCsv(opts: GamRunOptions = {}): Promise<string> {
-  // GAM7 syntax: `gam all users print forward` — one row per user with
-  // forwardingEnabled, forwardingEmail, disposition.
-  return runGam(["all", "users", "print", "forward"], opts);
-}
-
 export async function fetchUsersCsv(opts: GamRunOptions = {}): Promise<string> {
   // include suspended + isAdmin so the classifier can apply exemptions;
   // recoveryEmail is the user-configured personal address tied to the

@@ -206,6 +206,19 @@ Paste comma-separated, no spaces. Verify with `gam user <admin> check serviceacc
 — the CI workflow runs this on every audit and fails fast on scope drift.
 This is independent of WIF and only needs to be done once.
 
+Note: `gam user <admin> check serviceaccount` only validates the scope grant
+itself — it doesn't prove GAM's actual commands will work. GAM requests a
+much broader bundle for any Gmail subcommand (`mail.google.com` +
+`gmail.modify` + `gmail.settings.sharing`, on top of `gmail.settings.basic`),
+so authorizing only the minimum set above makes GAM's own `gam ... print
+forward` fail with a misleading `Gmail API Service/App not enabled`, even
+though the API is enabled and the scope check passes. That's why forwarding
+data is fetched directly against the Gmail API instead (see
+`src/gmailForwarding.ts`) — it mints its own domain-wide-delegation token
+scoped to `gmail.settings.basic` only, which is all `forwardingAddresses.list`
+/ `getAutoForwarding` actually require. `GCP_SA_EMAIL` must be set in the
+audit's environment for this to work (already wired up in `audit.yml`).
+
 Also set the repo variable `GAM_ADMIN_EMAIL` (Settings → Variables → Actions)
 to the admin account used for impersonation during the scope check, e.g.
 your primary super-admin address.
