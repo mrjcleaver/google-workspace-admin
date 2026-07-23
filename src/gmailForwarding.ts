@@ -1,7 +1,11 @@
 import { google } from "googleapis";
 import type { ForwardingEntry } from "./types.js";
 
-const IAM_SCOPE = "https://www.googleapis.com/auth/iam";
+// Matches src/reporters/sheets.ts's mintImpersonatedSheetsToken: cloud-platform
+// is the scope the WIF credentials file in CI is actually set up to grant
+// (google-github-actions/auth's access_token_scopes default), and it's broad
+// enough to cover iamcredentials.signJwt.
+const CALLER_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const GMAIL_SETTINGS_SCOPE = "https://www.googleapis.com/auth/gmail.settings.basic";
 
 export interface GmailForwardingOptions {
@@ -11,13 +15,25 @@ export interface GmailForwardingOptions {
   concurrency?: number;
 }
 
+function describeError(e: unknown): string {
+  const err = e as { response?: { status?: number; data?: unknown }; message?: string };
+  if (err?.response) {
+    return `HTTP ${err.response.status}: ${JSON.stringify(err.response.data)}`;
+  }
+  return e instanceof Error ? e.message : String(e);
+}
+
 async function selfAccessToken(): Promise<string> {
-  const auth = new google.auth.GoogleAuth({ scopes: [IAM_SCOPE] });
-  const client = await auth.getClient();
-  const resp = await client.getAccessToken();
-  const token = typeof resp === "string" ? resp : resp.token;
-  if (!token) throw new Error("could not obtain an access token to call signJwt");
-  return token;
+  const auth = new google.auth.GoogleAuth({ scopes: [CALLER_SCOPE] });
+  try {
+    const client = await auth.getClient();
+    const resp = await client.getAccessToken();
+    const token = typeof resp === "string" ? resp : resp.token;
+    if (!token) throw new Error("no token in response");
+    return token;
+  } catch (e) {
+    throw new Error(`could not obtain a caller access token to sign DWD JWTs: ${describeError(e)}`);
+  }
 }
 
 /**
@@ -136,9 +152,7 @@ export async function fetchForwardingByUser(
       const entries = await fetchOneUser(opts.serviceAccountEmail, email, callerToken);
       if (entries.length > 0) byUser.set(email.toLowerCase(), entries);
     } catch (e) {
-      process.stderr.write(
-        `warn: skipping forwarding lookup for ${email} (${e instanceof Error ? e.message : String(e)})\n`,
-      );
+      process.stderr.write(`warn: skipping forwarding lookup for ${email} (${describeError(e)})\n`);
     }
   });
   return byUser;
