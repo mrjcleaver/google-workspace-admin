@@ -9,7 +9,6 @@
 # Defaults PROJECT_ID to the active gcloud config project.
 
 set -euo pipefail
-
 PROJECT_ID="${1:-$(gcloud config get-value project 2>/dev/null)}"
 
 if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "(unset)" ]; then
