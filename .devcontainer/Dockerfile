@@ -1,7 +1,7 @@
 # Dev environment built on the same base image as the project's own Dockerfile,
 # so the devcontainer matches what actually ships. No docker-in-docker: this is
 # just the image the Codespace runs in, not a container built from within it.
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN apk add --no-cache bash git git-lfs curl python3 libc6-compat ca-certificates
 
