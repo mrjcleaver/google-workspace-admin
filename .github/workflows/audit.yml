@@ -153,6 +153,9 @@ jobs:
         if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           GW_TOKEN: ${{ secrets.GWORKSPACE_WEBHOOK_TOKEN }}
+          # Each org pushes to its own CRM instance (environment variable,
+          # e.g. https://people.guelphrobotics.ca); the path is shared.
+          CRM_BASE_URL: ${{ vars.CRM_BASE_URL }}
         run: |
           # GWORKSPACE_WEBHOOK_TOKEN is environment-scoped; skip cleanly for
           # an org that hasn't been wired up to the CRM yet instead of
@@ -161,8 +164,12 @@ jobs:
             echo "GWORKSPACE_WEBHOOK_TOKEN not set for ${{ matrix.org }} — skipping CRM push"
             exit 0
           fi
+          if [ -z "$CRM_BASE_URL" ]; then
+            echo "::error::CRM_BASE_URL environment variable not set for ${{ matrix.org }}"
+            exit 1
+          fi
           node scripts/merge-crm-csv.mjs "users-${{ matrix.org }}.csv" out/forwarding-audit.csv "crm-payload-${{ matrix.org }}.csv"
-          curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
+          curl -sS --fail-with-body -X POST "${CRM_BASE_URL%/}/api/webhooks/gworkspace/$GW_TOKEN" \
           -H "Content-Type: text/csv" --data-binary "@crm-payload-${{ matrix.org }}.csv"
 
       - uses: actions/upload-artifact@v4

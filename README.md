@@ -148,6 +148,7 @@ Required configuration (set per Environment — Settings → Environments → *n
 | -------- | ------- |
 | `GCP_SA_EMAIL` | Service account email (e.g. `gam-project-o94yk@gam-project-o94yk.iam.gserviceaccount.com`) |
 | `GCP_SA_CLIENT_ID` | SA's numeric OAuth client_id (~21 digits) — same value registered in Workspace Admin DWD |
+| `CRM_BASE_URL` | Base URL of that domain's CRM (e.g. `https://people.guelphrobotics.ca`); the report is POSTed to `$CRM_BASE_URL/api/webhooks/gworkspace/<GWORKSPACE_WEBHOOK_TOKEN>`. Required when `GWORKSPACE_WEBHOOK_TOKEN` is set. |
 
 **Secrets**:
 
