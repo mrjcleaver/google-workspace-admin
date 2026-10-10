@@ -10,9 +10,29 @@ on:
         description: "Skip writes and webhook"
         required: false
         default: "false"
+      org:
+        description: "Which Workspace domain(s) to audit"
+        type: choice
+        required: false
+        default: "all"
+        options:
+          - all
+          - guelphrobotics
+          - agenticsorg
 
 jobs:
   audit:
+    # Each org is a separate GitHub Environment (Settings → Environments),
+    # holding that domain's own GCP_WIF_PROVIDER/GAM_OAUTH2_JSON/etc secrets
+    # and GCP_SA_EMAIL/GCP_SA_CLIENT_ID/GAM_ADMIN_EMAIL vars. Environment
+    # secrets/vars take precedence over repo-level ones of the same name, so
+    # this job body is unchanged from the single-org version below.
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.org == 'all' || inputs.org == matrix.org }}
+    strategy:
+      fail-fast: false
+      matrix:
+        org: [guelphrobotics, agenticsorg]
+    environment: ${{ matrix.org }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -107,7 +127,7 @@ jobs:
       # suspended/organizations) that the audit report doesn't carry — merged
       # into the audit's own CSV below rather than pushed on its own.
       - name: Fetch roster for CRM merge
-        run: gam print users fields primaryEmail,name,fullName,suspended,organizations > users.csv
+        run: gam print users fields primaryEmail,name,fullName,suspended,organizations > "users-${{ matrix.org }}.csv"
 
       - name: Run audit
         env:
@@ -131,16 +151,23 @@ jobs:
         env:
           GW_TOKEN: ${{ secrets.GWORKSPACE_WEBHOOK_TOKEN }}
         run: |
-          node scripts/merge-crm-csv.mjs users.csv out/forwarding-audit.csv crm-payload.csv
+          # GWORKSPACE_WEBHOOK_TOKEN is environment-scoped; skip cleanly for
+          # an org that hasn't been wired up to the CRM yet instead of
+          # POSTing to a malformed (tokenless) URL.
+          if [ -z "$GW_TOKEN" ]; then
+            echo "GWORKSPACE_WEBHOOK_TOKEN not set for ${{ matrix.org }} — skipping CRM push"
+            exit 0
+          fi
+          node scripts/merge-crm-csv.mjs "users-${{ matrix.org }}.csv" out/forwarding-audit.csv "crm-payload-${{ matrix.org }}.csv"
           curl -sS -X POST "https://atlas-crm-sync.fly.dev/api/webhooks/gworkspace/$GW_TOKEN" \
-          -H "Content-Type: text/csv" --data-binary @crm-payload.csv
+          -H "Content-Type: text/csv" --data-binary "@crm-payload-${{ matrix.org }}.csv"
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: forwarding-audit
+          name: forwarding-audit-${{ matrix.org }}
           path: |
             out/
-            users.csv
-            crm-payload.csv
+            users-${{ matrix.org }}.csv
+            crm-payload-${{ matrix.org }}.csv
           if-no-files-found: ignore

@@ -118,16 +118,38 @@ credential at run time; GAM7's bundled google-auth library uses the IAM
 Credentials `signJwt` API to perform domain-wide delegation without a private
 key.
 
-Required configuration:
+#### Multiple Workspace domains
 
-**Repository variables** (Settings → Secrets and variables → Actions → Variables tab — these are not secret):
+The workflow audits two domains via a job matrix, one leg per
+[GitHub Environment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment):
+
+| Matrix `org` value | Environment name | Domain |
+| ------------------- | ----------------- | ------ |
+| `guelphrobotics` | `guelphrobotics` | existing/primary Workspace domain |
+| `agenticsorg` | `agenticsorg` | second Workspace domain |
+
+Each environment holds its **own, independent** copy of every variable/secret
+in the tables below — a separate GCP project, WIF pool, service account and
+GAM admin OAuth per domain. Environment-scoped values take precedence over
+repository-level ones of the same name, so the job steps are identical for
+both legs; only which environment is active differs. To add a third domain,
+add it to the `strategy.matrix.org` list and the `workflow_dispatch.inputs.org`
+choices, then create a matching Environment with its own config.
+
+`workflow_dispatch` accepts an `org` input (`all` by default) to run just one
+domain on demand: `gh workflow run audit.yml -f org=agenticsorg`.
+
+Required configuration (set per Environment — Settings → Environments → *name*
+→ Environment variables / Environment secrets):
+
+**Variables** (these are not secret):
 
 | Variable | Purpose |
 | -------- | ------- |
 | `GCP_SA_EMAIL` | Service account email (e.g. `gam-project-o94yk@gam-project-o94yk.iam.gserviceaccount.com`) |
 | `GCP_SA_CLIENT_ID` | SA's numeric OAuth client_id (~21 digits) — same value registered in Workspace Admin DWD |
 
-**Repository secrets**:
+**Secrets**:
 
 | Secret | Purpose |
 | ------ | ------- |
@@ -135,6 +157,11 @@ Required configuration:
 | `GAM_OAUTH2_JSON` | Contents of `~/.gam/oauth2.txt` (admin user OAuth, used for non-impersonated calls) |
 | `SHEET_ID` | Target spreadsheet ID (optional) |
 | `SLACK_WEBHOOK` | Slack/Discord webhook URL (optional) |
+| `GWORKSPACE_WEBHOOK_TOKEN` | CRM webhook token (optional — the push step skips cleanly if unset for a given domain) |
+
+Run the **One-time GCP setup** and **One-time Workspace Admin setup** steps
+below once per domain, pointing at that domain's own GCP project and admin
+console, then paste the resulting values into the matching Environment.
 
 #### One-time GCP setup
 
@@ -219,9 +246,10 @@ scoped to `gmail.settings.basic` only, which is all `forwardingAddresses.list`
 / `getAutoForwarding` actually require. `GCP_SA_EMAIL` must be set in the
 audit's environment for this to work (already wired up in `audit.yml`).
 
-Also set the repo variable `GAM_ADMIN_EMAIL` (Settings → Variables → Actions)
-to the admin account used for impersonation during the scope check, e.g.
-your primary super-admin address.
+Also set the Environment variable `GAM_ADMIN_EMAIL` (that domain's Settings →
+Environments → *name* → Environment variables) to the admin account used for
+impersonation during the scope check, e.g. that domain's primary super-admin
+address.
 
 ### Docker
 

@@ -22,3 +22,10 @@ CLAUDE.md
 oauth2*.json
 service-account*.json
 gam.cfg
+
+# Ruflo local secrets and runtime data
+.env.local
+.env.*.local
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/sessions/
