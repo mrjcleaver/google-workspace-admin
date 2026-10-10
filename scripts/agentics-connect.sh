@@ -1,7 +1,6 @@
 #! bash
 PROJECT_ID=agentics-487016
 GH_REPO=mrjcleaver/google-workspace-admin
-SA_EMAIL=667037737667-llr8q99p635piejnh3k6pegm2orqih35.apps.googleusercontent.com
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
 
 gcloud iam workload-identity-pools create github-actions-pool \
