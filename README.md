@@ -28,7 +28,7 @@ no key on disk). To trigger a live audit on demand and pull the result back:
 ```bash
 gh workflow run audit.yml                              # or pass -f dry_run=true
 gh run watch                                           # wait for it to finish
-gh run download --name forwarding-audit --dir ./out    # csv + md in ./out/
+gh run download --name forwarding-audit-guelphrobotics --dir ./out  # or -agenticsorg
 ```
 
 Scheduled runs (Mondays 08:00 UTC) post to Slack/Discord if `SLACK_WEBHOOK` is

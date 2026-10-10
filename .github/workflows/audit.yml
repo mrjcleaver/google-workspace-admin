@@ -27,11 +27,14 @@ jobs:
     # and GCP_SA_EMAIL/GCP_SA_CLIENT_ID/GAM_ADMIN_EMAIL vars. Environment
     # secrets/vars take precedence over repo-level ones of the same name, so
     # this job body is unchanged from the single-org version below.
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.org == 'all' || inputs.org == matrix.org }}
+    #
+    # The org filter lives in the matrix itself: a job-level `if:` can't read
+    # the `matrix` context (it's evaluated before the matrix expands), which
+    # makes GitHub reject the whole workflow file.
     strategy:
       fail-fast: false
       matrix:
-        org: [guelphrobotics, agenticsorg]
+        org: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.org != 'all' && format('["{0}"]', inputs.org) || '["guelphrobotics","agenticsorg"]') }}
     environment: ${{ matrix.org }}
     runs-on: ubuntu-latest
     permissions:

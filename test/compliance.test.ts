@@ -71,6 +71,40 @@ test("active user with no forwarding is compliant (ADR-0011)", () => {
   assert.equal(dormant?.status, "non-compliant");
 });
 
+test("registered-but-disabled forwarding does not count (dormant user)", () => {
+  const fwd = new Map([
+    [
+      "joe@volunteers.example.org",
+      [{ forwardingAddress: "joe@example.net", verified: true, enabled: false }],
+    ],
+    [
+      "ann@volunteers.example.org",
+      [{ forwardingAddress: "ann@gmail.com", verified: true, enabled: true }],
+    ],
+  ]);
+  const users = [
+    { primaryEmail: "joe@volunteers.example.org", lastLoginTime: undefined },
+    { primaryEmail: "ann@volunteers.example.org", lastLoginTime: undefined },
+  ];
+  const result = classifyAll(users, fwd, { exemptAdmins: false, exemptSuspended: false });
+  const joe = result.records.find((r) => r.primaryEmail === "joe@volunteers.example.org");
+  const ann = result.records.find((r) => r.primaryEmail === "ann@volunteers.example.org");
+  assert.equal(joe?.status, "non-compliant");
+  assert.match(joe!.reason, /registered but not enabled/);
+  assert.equal(joe?.unreachable, true);
+  assert.equal(ann?.status, "compliant");
+});
+
+test("disabled unverified address does not make an active user invalid", () => {
+  const fwd = new Map([
+    ["bea@volunteers.example.org", [{ forwardingAddress: "bea@x.com", verified: false, enabled: false }]],
+  ]);
+  const recent = new Date(Date.now() - 2 * 86_400_000).toISOString();
+  const users = [{ primaryEmail: "bea@volunteers.example.org", lastLoginTime: recent }];
+  const result = classifyAll(users, fwd, { exemptAdmins: false, exemptSuspended: false });
+  assert.equal(result.records[0].status, "compliant");
+});
+
 test("summary stats match record classification", () => {
   const { fwd, users } = setup();
   const result = classifyAll(users, fwd, { exemptAdmins: true, exemptSuspended: true });

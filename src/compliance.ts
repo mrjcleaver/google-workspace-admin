@@ -30,16 +30,25 @@ function classify(
   const threshold = opts.unreachableAfterDays ?? 28;
   const active = daysSinceLogin >= 0 && daysSinceLogin <= threshold;
 
-  if (fwd.length === 0) {
+  // A registered-but-disabled address forwards nothing (ADR-0005), so only
+  // enabled entries count. `enabled` undefined (source didn't report it) is
+  // given the benefit of the doubt, matching isUnreachable().
+  const enabled = fwd.filter((e) => e.enabled !== false);
+
+  if (enabled.length === 0) {
     if (active) return { status: "compliant", reason: `active user (logged in ${daysSinceLogin}d ago)` };
     const dormancyNote = daysSinceLogin === -1 ? "never logged in" : `${daysSinceLogin}d since login`;
-    return { status: "non-compliant", reason: `no forwarding address configured (${dormancyNote})` };
+    const what =
+      fwd.length > 0
+        ? `forwarding to ${fwd.map((e) => e.forwardingAddress).join(", ")} registered but not enabled`
+        : "no forwarding address configured";
+    return { status: "non-compliant", reason: `${what} (${dormancyNote})` };
   }
 
   const allowed = (opts.allowedDomains ?? []).map((d) => d.toLowerCase().replace(/^@/, ""));
   const problems: string[] = [];
   let anyVerified = false;
-  for (const entry of fwd) {
+  for (const entry of enabled) {
     if (entry.verified === false) problems.push(`${entry.forwardingAddress} not verified`);
     if (entry.verified === true) anyVerified = true;
     if (allowed.length > 0) {
